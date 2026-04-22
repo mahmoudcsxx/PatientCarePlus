@@ -4,6 +4,7 @@
  */
 package boundary;
 
+
 /**
  *
  * @author Administrator
@@ -229,6 +230,7 @@ public class RecordDiagnosisUI extends javax.swing.JFrame {
         jButton1.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jButton1.setForeground(new java.awt.Color(255, 255, 255));
         jButton1.setText("Save Diagnosis");
+        jButton1.addActionListener(this::jButton1ActionPerformed);
 
         jButton2.setBackground(new java.awt.Color(102, 153, 255));
         jButton2.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
@@ -285,6 +287,23 @@ public class RecordDiagnosisUI extends javax.swing.JFrame {
     private void formAncestorMoved(java.awt.event.HierarchyEvent evt) {//GEN-FIRST:event_formAncestorMoved
         // TODO add your handling code here:
     }//GEN-LAST:event_formAncestorMoved
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+    String diagnosis = jTextField1.getText();
+    String symptoms = jTextPane1.getText();
+    String treatment = jTextArea3.getText();
+
+    // Save to DB
+    DiagnosisDAO.saveDiagnosis(diagnosis, symptoms, treatment);
+
+    // Show in Medical History
+    jTextArea1.append(
+        "Diagnosis: " + diagnosis + "\n" +
+        "Symptoms: " + symptoms + "\n" +
+        "Treatment: " + treatment + "\n" +
+        "-----------------------------\n"
+    );
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
      * @param args the command line arguments

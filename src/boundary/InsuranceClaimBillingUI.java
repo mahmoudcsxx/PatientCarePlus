@@ -3,6 +3,8 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package boundary;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
 
 /**
  *
@@ -17,7 +19,111 @@ public class InsuranceClaimBillingUI extends javax.swing.JFrame {
      */
     public InsuranceClaimBillingUI() {
         initComponents();
+        setupInsuranceBillingUI();
     }
+    private void setupInsuranceBillingUI() {
+    patientCombo.removeAllItems();
+    jComboBox1.removeAllItems();
+
+    patientCombo.addItem("P001");
+    patientCombo.addItem("P002");
+    patientCombo.addItem("P003");
+
+    jComboBox1.addItem("P001");
+    jComboBox1.addItem("P002");
+    jComboBox1.addItem("P003");
+
+    createInvoiceBtn.addActionListener(e -> createInvoice());
+    jButton2.addActionListener(e -> submitClaim());
+    jButton3.addActionListener(e -> updateInsuranceInfo());
+    jButton4.addActionListener(e -> refreshClaims());
+    jButton1.addActionListener(e -> dispose());
+
+    refreshInvoices();
+    refreshClaims();
+}
+    private void createInvoice() {
+    try {
+        String patientId = patientCombo.getSelectedItem().toString();
+        double amount = Double.parseDouble(amountField.getText().trim());
+        double coverageRate = Double.parseDouble(coverageRateField.getText().trim());
+        String description = descriptionField.getText().trim();
+
+        if (coverageRate < 0 || coverageRate > 1) {
+            JOptionPane.showMessageDialog(this, "Coverage rate must be between 0 and 1.");
+            return;
+        }
+
+        boolean saved = InsuranceBillingDAO.createInvoice(patientId, amount, coverageRate, description);
+
+        if (saved) {
+            JOptionPane.showMessageDialog(this, "Invoice created successfully.");
+            amountField.setText("");
+            descriptionField.setText("");
+            coverageRateField.setText("0.7");
+            refreshInvoices();
+        } else {
+            JOptionPane.showMessageDialog(this, "Could not create invoice.");
+        }
+
+    } catch (NumberFormatException e) {
+        JOptionPane.showMessageDialog(this, "Please enter valid numeric amount and coverage rate.");
+    }
+}
+
+private void refreshInvoices() {
+    InsuranceBillingDAO.loadInvoices((DefaultTableModel) jTable1.getModel());
+    InsuranceBillingDAO.loadInvoices((DefaultTableModel) jTable2.getModel());
+}
+
+private void submitClaim() {
+    int row = jTable2.getSelectedRow();
+
+    if (row == -1) {
+        JOptionPane.showMessageDialog(this, "Please select an invoice first.");
+        return;
+    }
+
+    int invoiceId = Integer.parseInt(jTable2.getValueAt(row, 0).toString());
+    String patientId = jTable2.getValueAt(row, 1).toString();
+
+    boolean submitted = InsuranceBillingDAO.submitClaim(invoiceId, patientId);
+
+    if (submitted) {
+        JOptionPane.showMessageDialog(this, "Claim submitted successfully.");
+        refreshInvoices();
+        refreshClaims();
+    } else {
+        JOptionPane.showMessageDialog(this, "Could not submit claim.");
+    }
+}
+
+private void updateInsuranceInfo() {
+    String patientId = jComboBox1.getSelectedItem().toString();
+    String policy = jTextField1.getText().trim();
+    String provider = jTextField2.getText().trim();
+
+    if (policy.isEmpty() || provider.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Please enter policy number and provider.");
+        return;
+    }
+
+    boolean updated = InsuranceBillingDAO.updateInsurance(patientId, policy, provider);
+
+    if (updated) {
+        JOptionPane.showMessageDialog(this, "Insurance info updated.");
+        jTextField1.setText("");
+        jTextField2.setText("");
+    } else {
+        JOptionPane.showMessageDialog(this, "Could not update insurance info.");
+    }
+}
+
+private void refreshClaims() {
+    InsuranceBillingDAO.loadClaims((DefaultTableModel) jTable3.getModel());
+}
+
+
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -188,9 +294,10 @@ public class InsuranceClaimBillingUI extends javax.swing.JFrame {
         jLabel3.setText("All Invoices");
 
         jScrollPane1.setBackground(new java.awt.Color(255, 255, 255));
+        jScrollPane1.setForeground(new java.awt.Color(0, 0, 0));
 
         jTable1.setBackground(new java.awt.Color(255, 255, 255));
-        jTable1.setForeground(new java.awt.Color(255, 255, 255));
+        jTable1.setForeground(new java.awt.Color(0, 0, 0));
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null, null, null},
