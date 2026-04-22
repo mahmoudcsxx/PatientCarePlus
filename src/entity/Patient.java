@@ -1,4 +1,3 @@
-
 package entity;
 
 import java.util.Calendar;
@@ -36,21 +35,21 @@ public class Patient {
         this.age = computeAge(); // ***************
     }
     
-     /** update demographic fields in one call. */
+     /** */
       public void updateDemographics(String name, String phone, String address) {
         this.fullName = name;
         this.phone = phone;
         this.address = address;
     }
       
-      /** update insurance data. */
+      /** */
     public void updateInsuranceInfo(String policyNo, String provider) {
         this.insurancePolicyNo = policyNo;
         this.insuranceProvider = provider;
     }
     
     
-    /** single string summary of insurance data. */
+    /** */
     public String getInsuranceInfo() {
         if (insuranceProvider == null || insurancePolicyNo == null) {
             return "No insurance on file";
@@ -58,7 +57,7 @@ public class Patient {
         return insuranceProvider + " (#" + insurancePolicyNo + ")";
     }
     
-      /** compute current age from DOB. */
+      /** */
     public int computeAge() {
         if (dateOfBirth == null) return 0;
         Calendar dob = Calendar.getInstance();
@@ -71,7 +70,7 @@ public class Patient {
     }
    
     
-       public String getPatientId() { return patientId; }
+    public String getPatientId() { return patientId; }
     public void setPatientId(String patientId) { this.patientId = patientId; }
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
@@ -104,4 +103,4 @@ public class Patient {
     
     
     
-}
+
