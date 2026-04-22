@@ -4,6 +4,9 @@
  */
 package boundary;
 
+import controller.AuthController;
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author Administrator
@@ -12,12 +15,16 @@ public class LoginUI extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(LoginUI.class.getName());
 
+
+
     /**
      * Creates new form LoginUI
      */
     public LoginUI() {
         initComponents();
     }
+
+
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -83,6 +90,7 @@ public class LoginUI extends javax.swing.JFrame {
         loginBtn.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         loginBtn.setForeground(new java.awt.Color(255, 255, 255));
         loginBtn.setText("Login");
+        loginBtn.addActionListener(this::loginBtnActionPerformed);
 
         jPasswordField1.setBackground(new java.awt.Color(255, 255, 255));
         jPasswordField1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
@@ -137,6 +145,26 @@ public class LoginUI extends javax.swing.JFrame {
     private void emailFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_emailFieldActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_emailFieldActionPerformed
+    private void loginBtnActionPerformed(java.awt.event.ActionEvent evt) {
+        String email = emailField.getText().trim();
+        String password = new String(jPasswordField1.getPassword());
+
+        if (email.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter email and password.");
+            return;
+        }
+
+        AuthController authController = new AuthController();
+        if (authController.login(email, password)) {
+            JOptionPane.showMessageDialog(this, "Login successful.");
+            new DashboardUI().setVisible(true);
+            this.dispose();
+        } else {
+            JOptionPane.showMessageDialog(this, "Invalid email or password.");
+        }
+    }
+
+
 
     /**
      * @param args the command line arguments
@@ -174,3 +202,5 @@ public class LoginUI extends javax.swing.JFrame {
     private javax.swing.JLabel titleLabel;
     // End of variables declaration//GEN-END:variables
 }
+
+

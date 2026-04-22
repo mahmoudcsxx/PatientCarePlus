@@ -1,7 +1,9 @@
 package patientcareplus;
 
+import boundary.LoginUI;
+
 public class Main {
     public static void main(String[] args) {
-        System.out.println("PatientCarePlus started...");
+        java.awt.EventQueue.invokeLater(() -> new LoginUI().setVisible(true));
     }
 }

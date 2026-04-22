@@ -4,6 +4,15 @@
  */
 package boundary;
 
+import db.DatabaseManager;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+
 /**
  *
  * @author Administrator
@@ -17,6 +26,98 @@ public class DashboardUI extends javax.swing.JFrame {
      */
     public DashboardUI() {
         initComponents();
+        setupDashboardUI();
+    }
+
+
+    private void setupDashboardUI() {
+        table.setForeground(new java.awt.Color(0, 0, 0));
+        table.setSelectionForeground(new java.awt.Color(255, 255, 255));
+
+        refreshBtn.addActionListener(e -> refreshPatients());
+        diagnosisBtn.addActionListener(e -> new RecordDiagnosisUI().setVisible(true));
+        claimBtn.addActionListener(e -> new InsuranceClaimBillingUI().setVisible(true));
+
+        registerBtn.addActionListener(e -> showNotReady("Register Patient"));
+        prescribeBtn.addActionListener(e -> showNotReady("Prescribe Treatment"));
+        manageBtn.addActionListener(e -> showNotReady("Manage Medical Record"));
+        jButton7.addActionListener(e -> showNotReady("Record Monitoring Data"));
+
+        refreshPatients();
+    }
+
+    private void refreshPatients() {
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        model.setRowCount(0);
+
+        try {
+            initializePatientInsuranceTable();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Could not prepare patient data table.");
+            return;
+        }
+
+        String sql = "SELECT PATIENT_ID, POLICY_NUMBER, PROVIDER FROM PATIENT_INSURANCE ORDER BY PATIENT_ID";
+
+        try (Connection con = DatabaseManager.getConnection();
+             PreparedStatement pst = con.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getString("PATIENT_ID"),
+                    "",
+                    "",
+                    rs.getString("PROVIDER"),
+                    rs.getString("POLICY_NUMBER")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Could not load patients from the database.");
+        }
+    }
+
+    private void initializePatientInsuranceTable() throws SQLException {
+        try (Connection con = DatabaseManager.getConnection();
+             Statement statement = con.createStatement()) {
+
+            try {
+                statement.executeUpdate(
+                        "CREATE TABLE PATIENT_INSURANCE ("
+                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
+                        + "POLICY_NUMBER VARCHAR(100), "
+                        + "PROVIDER VARCHAR(100)"
+                        + ")"
+                );
+            } catch (SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) {
+                    throw e;
+                }
+            }
+
+            insertDefaultPatientInsurance(con, "P001");
+            insertDefaultPatientInsurance(con, "P002");
+            insertDefaultPatientInsurance(con, "P003");
+        }
+    }
+
+    private void insertDefaultPatientInsurance(Connection con, String patientId) {
+        String sql = "INSERT INTO PATIENT_INSURANCE (PATIENT_ID, POLICY_NUMBER, PROVIDER) VALUES (?, '', '')";
+
+        try (PreparedStatement pst = con.prepareStatement(sql)) {
+            pst.setString(1, patientId);
+            pst.executeUpdate();
+        } catch (SQLException e) {
+            if (!"23505".equals(e.getSQLState())) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void showNotReady(String featureName) {
+        JOptionPane.showMessageDialog(this, featureName + " is not implemented yet.");
     }
 
     /**
@@ -237,7 +338,8 @@ public class DashboardUI extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void logoutBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_logoutBtnActionPerformed
-        // TODO add your handling code here:
+        new LoginUI().setVisible(true);
+        this.dispose();
     }//GEN-LAST:event_logoutBtnActionPerformed
 
     /**
@@ -284,3 +386,4 @@ public class DashboardUI extends javax.swing.JFrame {
     private javax.swing.JLabel titleLabel;
     // End of variables declaration//GEN-END:variables
 }
+
