@@ -6,7 +6,12 @@
             <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/DashboardUI.java</file>
             <file>file:/X:/Repos/University/PatientCarePlus/src/controller/AuthController.java</file>
             <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/LoginUI.java</file>
+            <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/RecordDiagnosisUI.java</file>
+            <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/DiagnosisDAO.java</file>
             <file>file:/X:/Repos/University/PatientCarePlus/src/db/DatabaseManager.java</file>
+            <file>file:/X:/Repos/University/PatientCarePlus/src/patientcareplus/Main.java</file>
+            <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/InsuranceClaimBillingUI.java</file>
+            <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/InsuranceBillingDAO.java</file>
         </group>
     </open-files>
 </project-private>
