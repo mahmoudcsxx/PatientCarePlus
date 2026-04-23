@@ -39,7 +39,7 @@ public class DashboardUI extends javax.swing.JFrame {
         claimBtn.addActionListener(e -> new InsuranceClaimBillingUI().setVisible(true));
 
         registerBtn.addActionListener(e -> showNotReady("Register Patient"));
-        prescribeBtn.addActionListener(e -> showNotReady("Prescribe Treatment"));
+        prescribeBtn.addActionListener(e -> new PrescribeTreatmentUI().setVisible(true));
         manageBtn.addActionListener(e -> showNotReady("Manage Medical Record"));
         jButton7.addActionListener(e -> showNotReady("Record Monitoring Data"));
 
@@ -386,4 +386,7 @@ public class DashboardUI extends javax.swing.JFrame {
     private javax.swing.JLabel titleLabel;
     // End of variables declaration//GEN-END:variables
 }
+
+
+
 
