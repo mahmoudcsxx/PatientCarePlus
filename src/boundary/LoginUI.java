@@ -22,6 +22,24 @@ public class LoginUI extends javax.swing.JFrame {
      */
     public LoginUI() {
         initComponents();
+        setupLoginUI();
+    }
+
+    // Keep test credentials visible for demos without changing the GUI Builder layout.
+    private void setupLoginUI() {
+        getRootPane().setDefaultButton(loginBtn);
+        emailField.setText("admin@test.com");
+        jPasswordField1.setText("1234");
+        String testAccounts = """
+                Test accounts:
+                admin@test.com / 1234
+                doctor@test.com / 1234
+                nurse@test.com / 1234
+                reception@test.com / 1234
+                """;
+        emailField.setToolTipText(testAccounts);
+        jPasswordField1.setToolTipText(testAccounts);
+        loginBtn.setToolTipText(testAccounts);
     }
 
 

@@ -49,20 +49,27 @@ public class AuthController {
                 }
             }
 
-            insertDefaultAdmin(con);
+            insertDefaultUsers(con);
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    private void insertDefaultAdmin(Connection con) {
+    private void insertDefaultUsers(Connection con) {
+        insertDefaultUser(con, "Admin", "admin@test.com", "1234", "ADMIN");
+        insertDefaultUser(con, "Doctor", "doctor@test.com", "1234", "DOCTOR");
+        insertDefaultUser(con, "Nurse", "nurse@test.com", "1234", "NURSE");
+        insertDefaultUser(con, "Receptionist", "reception@test.com", "1234", "RECEPTIONIST");
+    }
+
+    private void insertDefaultUser(Connection con, String name, String email, String password, String role) {
         String sql = "INSERT INTO APP_USERS (NAME, EMAIL, PASSWORD, ROLE) VALUES (?, ?, ?, ?)";
 
         try (PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setString(1, "Admin");
-            pst.setString(2, "admin@test.com");
-            pst.setString(3, "1234");
-            pst.setString(4, "ADMIN");
+            pst.setString(1, name);
+            pst.setString(2, email);
+            pst.setString(3, password);
+            pst.setString(4, role);
             pst.executeUpdate();
         } catch (SQLException e) {
             if (!"23505".equals(e.getSQLState())) {

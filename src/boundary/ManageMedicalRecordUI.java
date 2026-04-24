@@ -837,6 +837,43 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                     throw e;
                 }
             }
+
+            try {
+                statement.executeUpdate(
+                        "CREATE TABLE LAB_RESULT ("
+                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
+                        + "HBALC DOUBLE, "
+                        + "FASTING_GLUCOSE DOUBLE, "
+                        + "LDL_CHOLESTEROL DOUBLE, "
+                        + "CREATININE DOUBLE, "
+                        + "RESULT_STATUS VARCHAR(30), "
+                        + "UPDATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                        + ")"
+                );
+            } catch (SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) {
+                    throw e;
+                }
+            }
+
+            try {
+                statement.executeUpdate(
+                        "CREATE TABLE PATIENT_MONITORING ("
+                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
+                        + "BLOOD_PRESSURE VARCHAR(30), "
+                        + "HEART_RATE INT, "
+                        + "WEIGHT DOUBLE, "
+                        + "SPO2 INT, "
+                        + "TEMPERATURE DOUBLE, "
+                        + "RESPIRATORY_RATE INT, "
+                        + "RECORDED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                        + ")"
+                );
+            } catch (SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) {
+                    throw e;
+                }
+            }
         }
     }
 
@@ -861,6 +898,8 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
             try (Connection con = DatabaseManager.getConnection();
                  PreparedStatement pst = con.prepareStatement(sql)) {
 
+                ensureDefaultHealthData(con, patientId);
+
                 pst.setString(1, patientId);
 
                 try (ResultSet rs = pst.executeQuery()) {
@@ -874,11 +913,165 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                         clearMedicalRecordForm();
                     }
                 }
+
+                loadLaboratoryResults(con, patientId);
+                loadPatientMonitoring(con, patientId);
             }
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Could not load the selected medical record.");
         }
+    }
+
+    // Demo health data lets the lab and monitoring cards work as soon as a patient exists.
+    private void ensureDefaultHealthData(Connection con, String patientId) throws SQLException {
+        int patientNumber = extractPatientNumber(patientId);
+
+        if (!rowExists(con, "LAB_RESULT", patientId)) {
+            String sql = """
+                    INSERT INTO LAB_RESULT
+                    (PATIENT_ID, HBALC, FASTING_GLUCOSE, LDL_CHOLESTEROL, CREATININE, RESULT_STATUS)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """;
+
+            try (PreparedStatement pst = con.prepareStatement(sql)) {
+                pst.setString(1, patientId);
+                pst.setDouble(2, 5.8 + (patientNumber % 4) * 0.5);
+                pst.setDouble(3, 92 + (patientNumber % 5) * 9);
+                pst.setDouble(4, 95 + (patientNumber % 4) * 12);
+                pst.setDouble(5, 0.8 + (patientNumber % 3) * 0.2);
+                pst.setString(6, "READY");
+                pst.executeUpdate();
+            }
+        }
+
+        if (!rowExists(con, "PATIENT_MONITORING", patientId)) {
+            String sql = """
+                    INSERT INTO PATIENT_MONITORING
+                    (PATIENT_ID, BLOOD_PRESSURE, HEART_RATE, WEIGHT, SPO2, TEMPERATURE, RESPIRATORY_RATE)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """;
+
+            try (PreparedStatement pst = con.prepareStatement(sql)) {
+                pst.setString(1, patientId);
+                pst.setString(2, (118 + patientNumber % 12) + "/" + (76 + patientNumber % 8));
+                pst.setInt(3, 70 + patientNumber % 12);
+                pst.setDouble(4, 68 + patientNumber % 18);
+                pst.setInt(5, 96 + patientNumber % 4);
+                pst.setDouble(6, 36.4 + (patientNumber % 5) * 0.1);
+                pst.setInt(7, 14 + patientNumber % 5);
+                pst.executeUpdate();
+            }
+        }
+    }
+
+    private boolean rowExists(Connection con, String tableName, String patientId) throws SQLException {
+        String sql = "SELECT PATIENT_ID FROM " + tableName + " WHERE PATIENT_ID = ?";
+
+        try (PreparedStatement pst = con.prepareStatement(sql)) {
+            pst.setString(1, patientId);
+
+            try (ResultSet rs = pst.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private void loadLaboratoryResults(Connection con, String patientId) throws SQLException {
+        String sql = """
+                SELECT HBALC, FASTING_GLUCOSE, LDL_CHOLESTEROL, CREATININE, RESULT_STATUS
+                FROM LAB_RESULT
+                WHERE PATIENT_ID = ?
+                """;
+
+        try (PreparedStatement pst = con.prepareStatement(sql)) {
+            pst.setString(1, patientId);
+
+            try (ResultSet rs = pst.executeQuery()) {
+                if (!rs.next() || !"READY".equalsIgnoreCase(defaultText(rs.getString("RESULT_STATUS")))) {
+                    setLaboratoryPending();
+                    return;
+                }
+
+                double hbAlc = rs.getDouble("HBALC");
+                double fastingGlucose = rs.getDouble("FASTING_GLUCOSE");
+                double ldlCholesterol = rs.getDouble("LDL_CHOLESTEROL");
+                double creatinine = rs.getDouble("CREATININE");
+
+                HbAlcNumberLabel.setText(formatDecimal(hbAlc) + " %");
+                setStatus(HbAlcTypeLabel, hbAlc >= 6.5 ? "Elevated" : "Normal", hbAlc >= 6.5);
+
+                FastingGlucoseNumberLabel.setText(formatDecimal(fastingGlucose) + " mg/dl");
+                setStatus(FastingGlucoseTypeLabel, fastingGlucose > 100 ? "Above range" : "Normal",
+                        fastingGlucose > 100);
+
+                LDLcholesterolNumberLabel.setText(formatDecimal(ldlCholesterol) + " mg/dl");
+                setStatus(LDLcholesterolTypeLabel, ldlCholesterol >= 130 ? "High" : "Within range",
+                        ldlCholesterol >= 130);
+
+                CreatinineNumberLabel.setText(formatDecimal(creatinine) + " mg/dl");
+                setStatus(CreatinineTypeLabel, creatinine > 1.2 ? "High" : "Normal", creatinine > 1.2);
+            }
+        }
+    }
+
+    private void loadPatientMonitoring(Connection con, String patientId) throws SQLException {
+        String sql = """
+                SELECT BLOOD_PRESSURE, HEART_RATE, WEIGHT, SPO2, TEMPERATURE, RESPIRATORY_RATE
+                FROM PATIENT_MONITORING
+                WHERE PATIENT_ID = ?
+                """;
+
+        try (PreparedStatement pst = con.prepareStatement(sql)) {
+            pst.setString(1, patientId);
+
+            try (ResultSet rs = pst.executeQuery()) {
+                if (!rs.next()) {
+                    setMonitoringPending();
+                    return;
+                }
+
+                BloodpressureNumberLabel.setText(defaultDisplay(rs.getString("BLOOD_PRESSURE")));
+                HeartrateNumberLabel.setText(rs.getInt("HEART_RATE") + " bpm");
+                HbAlcNumberLabel1.setText(formatDecimal(rs.getDouble("WEIGHT")) + " kg");
+                SpO2NumberLabel.setText(rs.getInt("SPO2") + "%");
+                TemperatureNumberLabel.setText(formatDecimal(rs.getDouble("TEMPERATURE")) + " C");
+                RespiratoryRateNumberLabel.setText(rs.getInt("RESPIRATORY_RATE") + " breaths/min");
+            }
+        }
+    }
+
+    private void setLaboratoryPending() {
+        HbAlcNumberLabel.setText("Pending");
+        HbAlcTypeLabel.setText("-");
+        FastingGlucoseNumberLabel.setText("Pending");
+        FastingGlucoseTypeLabel.setText("-");
+        LDLcholesterolNumberLabel.setText("Pending");
+        LDLcholesterolTypeLabel.setText("-");
+        CreatinineNumberLabel.setText("Pending");
+        CreatinineTypeLabel.setText("-");
+    }
+
+    private void setMonitoringPending() {
+        BloodpressureNumberLabel.setText("-");
+        HeartrateNumberLabel.setText("-");
+        HbAlcNumberLabel1.setText("-");
+        SpO2NumberLabel.setText("-");
+        TemperatureNumberLabel.setText("-");
+        RespiratoryRateNumberLabel.setText("-");
+    }
+
+    private void setStatus(javax.swing.JLabel label, String text, boolean warning) {
+        label.setText(text);
+        label.setForeground(warning ? new java.awt.Color(255, 152, 0) : new java.awt.Color(76, 175, 80));
+    }
+
+    private int extractPatientNumber(String patientId) {
+        if (patientId != null && patientId.matches("P\\d+")) {
+            return Integer.parseInt(patientId.substring(1));
+        }
+
+        return 1;
     }
 
     // Save the current form values for the selected patient, updating first when possible.
@@ -952,12 +1145,24 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
         return value == null ? "" : value;
     }
 
+    private String defaultDisplay(String value) {
+        return value == null || value.isBlank() ? "-" : value;
+    }
+
+    private String formatDecimal(double value) {
+        return value == Math.rint(value)
+                ? String.valueOf((int) value)
+                : String.format(java.util.Locale.US, "%.1f", value);
+    }
+
     private void clearMedicalRecordForm() {
         DiagnosisTextArea.setText("");
         MedicationTextArea.setText("");
         TreatmentPlanTextArea.setText("");
         AllergiesTextArea.setText("");
         DoctorNotesTextArea.setText("");
+        setLaboratoryPending();
+        setMonitoringPending();
     }
 
     /**
