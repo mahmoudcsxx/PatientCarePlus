@@ -3,6 +3,14 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package boundary;
+import db.DatabaseManager;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
@@ -22,16 +30,7 @@ public class InsuranceClaimBillingUI extends javax.swing.JFrame {
         setupInsuranceBillingUI();
     }
     private void setupInsuranceBillingUI() {
-    patientCombo.removeAllItems();
-    jComboBox1.removeAllItems();
-
-    patientCombo.addItem("P001");
-    patientCombo.addItem("P002");
-    patientCombo.addItem("P003");
-
-    jComboBox1.addItem("P001");
-    jComboBox1.addItem("P002");
-    jComboBox1.addItem("P003");
+    loadPatientCombos();
 
     createInvoiceBtn.addActionListener(e -> createInvoice());
     jButton2.addActionListener(e -> submitClaim());
@@ -41,6 +40,29 @@ public class InsuranceClaimBillingUI extends javax.swing.JFrame {
 
     refreshInvoices();
     refreshClaims();
+}
+    private void loadPatientCombos() {
+    patientCombo.removeAllItems();
+    jComboBox1.removeAllItems();
+
+    try {
+        for (String patientId : InsuranceBillingDAO.loadPatientIds()) {
+            patientCombo.addItem(patientId);
+            jComboBox1.addItem(patientId);
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Could not load patients from Derby.");
+    }
+
+    if (patientCombo.getItemCount() == 0) {
+        patientCombo.addItem("P001");
+        patientCombo.addItem("P002");
+        patientCombo.addItem("P003");
+        jComboBox1.addItem("P001");
+        jComboBox1.addItem("P002");
+        jComboBox1.addItem("P003");
+    }
 }
     private void createInvoice() {
     try {
@@ -123,6 +145,268 @@ private void refreshClaims() {
     InsuranceBillingDAO.loadClaims((DefaultTableModel) jTable3.getModel());
 }
 
+private static class InsuranceBillingDAO {
+
+    private static void initializeBillingTables() throws SQLException {
+        try (Connection con = DatabaseManager.getConnection();
+             Statement statement = con.createStatement()) {
+
+            try {
+                statement.executeUpdate(
+                        "CREATE TABLE PATIENT_INSURANCE ("
+                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
+                        + "POLICY_NUMBER VARCHAR(100), "
+                        + "PROVIDER VARCHAR(100)"
+                        + ")"
+                );
+            } catch (SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) {
+                    throw e;
+                }
+            }
+
+            try {
+                statement.executeUpdate(
+                        "CREATE TABLE BILLING_INVOICE ("
+                        + "INVOICE_ID INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, "
+                        + "PATIENT_ID VARCHAR(50) NOT NULL, "
+                        + "TOTAL_AMOUNT DOUBLE NOT NULL, "
+                        + "INSURANCE_COVERAGE DOUBLE NOT NULL, "
+                        + "PATIENT_RESPONSIBILITY DOUBLE NOT NULL, "
+                        + "SERVICE_DESCRIPTION VARCHAR(1000), "
+                        + "STATUS VARCHAR(30) NOT NULL, "
+                        + "CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                        + ")"
+                );
+            } catch (SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) {
+                    throw e;
+                }
+            }
+
+            try {
+                statement.executeUpdate(
+                        "CREATE TABLE INSURANCE_CLAIM ("
+                        + "CLAIM_ID INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, "
+                        + "BILLING_ID INT NOT NULL, "
+                        + "PATIENT_ID VARCHAR(50) NOT NULL, "
+                        + "SUBMITTED_BY VARCHAR(100), "
+                        + "STATUS VARCHAR(30) NOT NULL, "
+                        + "SUBMITTED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+                        + "PROCESSED_AT TIMESTAMP"
+                        + ")"
+                );
+            } catch (SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private static List<String> loadPatientIds() throws SQLException {
+        initializeBillingTables();
+
+        List<String> patientIds = new ArrayList<>();
+        String sql = """
+            SELECT PATIENT_ID FROM PATIENT
+            UNION
+            SELECT PATIENT_ID FROM PATIENT_INSURANCE
+            ORDER BY PATIENT_ID
+        """;
+
+        try (Connection con = DatabaseManager.getConnection();
+             PreparedStatement pst = con.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
+
+            while (rs.next()) {
+                patientIds.add(rs.getString("PATIENT_ID"));
+            }
+        } catch (SQLException e) {
+            if (!"42X05".equals(e.getSQLState())) {
+                throw e;
+            }
+        }
+
+        return patientIds;
+    }
+
+    private static boolean createInvoice(String patientId, double amount, double coverageRate, String description) {
+        double insuranceCoverage = Math.round(amount * coverageRate * 100.0) / 100.0;
+        double patientPays = Math.round((amount - insuranceCoverage) * 100.0) / 100.0;
+
+        String sql = """
+            INSERT INTO BILLING_INVOICE
+            (PATIENT_ID, TOTAL_AMOUNT, INSURANCE_COVERAGE, PATIENT_RESPONSIBILITY, SERVICE_DESCRIPTION, STATUS)
+            VALUES (?, ?, ?, ?, ?, 'PENDING')
+        """;
+
+        try {
+            initializeBillingTables();
+
+            try (Connection con = DatabaseManager.getConnection();
+                 PreparedStatement pst = con.prepareStatement(sql)) {
+
+                pst.setString(1, patientId);
+                pst.setDouble(2, amount);
+                pst.setDouble(3, insuranceCoverage);
+                pst.setDouble(4, patientPays);
+                pst.setString(5, description);
+                pst.executeUpdate();
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private static void loadInvoices(DefaultTableModel model) {
+        model.setRowCount(0);
+
+        String sql = """
+            SELECT INVOICE_ID, PATIENT_ID, TOTAL_AMOUNT, INSURANCE_COVERAGE,
+                   PATIENT_RESPONSIBILITY, STATUS
+            FROM BILLING_INVOICE
+            ORDER BY INVOICE_ID DESC
+        """;
+
+        try {
+            initializeBillingTables();
+
+            try (Connection con = DatabaseManager.getConnection();
+                 PreparedStatement pst = con.prepareStatement(sql);
+                 ResultSet rs = pst.executeQuery()) {
+
+                while (rs.next()) {
+                    model.addRow(new Object[]{
+                        rs.getInt("INVOICE_ID"),
+                        rs.getString("PATIENT_ID"),
+                        rs.getDouble("TOTAL_AMOUNT"),
+                        rs.getDouble("INSURANCE_COVERAGE"),
+                        rs.getDouble("PATIENT_RESPONSIBILITY"),
+                        rs.getString("STATUS")
+                    });
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static boolean submitClaim(int invoiceId, String patientId) {
+        String insertClaim = """
+            INSERT INTO INSURANCE_CLAIM (BILLING_ID, PATIENT_ID, SUBMITTED_BY, STATUS)
+            VALUES (?, ?, 'System', 'SUBMITTED')
+        """;
+
+        String updateInvoice = """
+            UPDATE BILLING_INVOICE
+            SET STATUS = 'SUBMITTED'
+            WHERE INVOICE_ID = ?
+        """;
+
+        try {
+            initializeBillingTables();
+
+            try (Connection con = DatabaseManager.getConnection()) {
+                con.setAutoCommit(false);
+
+                try (PreparedStatement claimPst = con.prepareStatement(insertClaim);
+                     PreparedStatement invoicePst = con.prepareStatement(updateInvoice)) {
+
+                    claimPst.setInt(1, invoiceId);
+                    claimPst.setString(2, patientId);
+                    claimPst.executeUpdate();
+
+                    invoicePst.setInt(1, invoiceId);
+                    invoicePst.executeUpdate();
+
+                    con.commit();
+                    return true;
+                } catch (SQLException e) {
+                    con.rollback();
+                    throw e;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private static boolean updateInsurance(String patientId, String policyNumber, String provider) {
+        String updateSql = """
+            UPDATE PATIENT_INSURANCE
+            SET POLICY_NUMBER = ?, PROVIDER = ?
+            WHERE PATIENT_ID = ?
+        """;
+        String insertSql = """
+            INSERT INTO PATIENT_INSURANCE (PATIENT_ID, POLICY_NUMBER, PROVIDER)
+            VALUES (?, ?, ?)
+        """;
+
+        try {
+            initializeBillingTables();
+
+            try (Connection con = DatabaseManager.getConnection();
+                 PreparedStatement updatePst = con.prepareStatement(updateSql)) {
+
+                updatePst.setString(1, policyNumber);
+                updatePst.setString(2, provider);
+                updatePst.setString(3, patientId);
+
+                if (updatePst.executeUpdate() == 0) {
+                    try (PreparedStatement insertPst = con.prepareStatement(insertSql)) {
+                        insertPst.setString(1, patientId);
+                        insertPst.setString(2, policyNumber);
+                        insertPst.setString(3, provider);
+                        insertPst.executeUpdate();
+                    }
+                }
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private static void loadClaims(DefaultTableModel model) {
+        model.setRowCount(0);
+
+        String sql = """
+            SELECT CLAIM_ID, BILLING_ID, PATIENT_ID, SUBMITTED_BY, STATUS,
+                   SUBMITTED_AT, PROCESSED_AT
+            FROM INSURANCE_CLAIM
+            ORDER BY CLAIM_ID DESC
+        """;
+
+        try {
+            initializeBillingTables();
+
+            try (Connection con = DatabaseManager.getConnection();
+                 PreparedStatement pst = con.prepareStatement(sql);
+                 ResultSet rs = pst.executeQuery()) {
+
+                while (rs.next()) {
+                    model.addRow(new Object[]{
+                        rs.getInt("CLAIM_ID"),
+                        rs.getInt("BILLING_ID"),
+                        rs.getString("PATIENT_ID"),
+                        rs.getString("SUBMITTED_BY"),
+                        rs.getString("STATUS"),
+                        rs.getTimestamp("SUBMITTED_AT"),
+                        rs.getTimestamp("PROCESSED_AT")
+                    });
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
 
 
     /**
@@ -180,8 +464,8 @@ private void refreshClaims() {
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Process Insurance Claim & Billing");
         setBackground(new java.awt.Color(255, 255, 255));
-        setPreferredSize(new java.awt.Dimension(1030, 800));
-        setSize(new java.awt.Dimension(1030, 800));
+        setPreferredSize(new java.awt.Dimension(1030, 850));
+        setSize(new java.awt.Dimension(1030, 850));
 
         tabs.setBackground(new java.awt.Color(255, 255, 255));
         tabs.setForeground(new java.awt.Color(0, 0, 0));
@@ -323,7 +607,7 @@ private void refreshClaims() {
                     .addComponent(jLabel3)
                     .addComponent(jLabel2)
                     .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(20, Short.MAX_VALUE))
+                .addContainerGap(37, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -336,7 +620,7 @@ private void refreshClaims() {
                 .addComponent(jLabel3)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 312, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(49, Short.MAX_VALUE))
+                .addContainerGap(78, Short.MAX_VALUE))
         );
 
         tabs.addTab("1 · Generate Invoice", jPanel2);
@@ -382,7 +666,7 @@ private void refreshClaims() {
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addContainerGap(35, Short.MAX_VALUE)
+                .addContainerGap(52, Short.MAX_VALUE)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
                         .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
@@ -406,7 +690,7 @@ private void refreshClaims() {
                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 508, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jButton2)
-                .addContainerGap(68, Short.MAX_VALUE))
+                .addContainerGap(97, Short.MAX_VALUE))
         );
 
         tabs.addTab("2 · Submit Claim", jPanel3);
@@ -518,7 +802,7 @@ private void refreshClaims() {
                 .addComponent(jLabel6)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(447, Short.MAX_VALUE))
+                .addContainerGap(488, Short.MAX_VALUE))
         );
 
         tabs.addTab("3 · Update Insurance", jPanel4);
@@ -557,14 +841,14 @@ private void refreshClaims() {
             .addGroup(jPanel5Layout.createSequentialGroup()
                 .addGap(457, 457, 457)
                 .addComponent(jButton4)
-                .addContainerGap(468, Short.MAX_VALUE))
+                .addContainerGap(489, Short.MAX_VALUE))
         );
         jPanel5Layout.setVerticalGroup(
             jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel5Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 595, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 33, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jButton4)
                 .addGap(20, 20, 20))
         );
@@ -691,5 +975,4 @@ private void refreshClaims() {
     private javax.swing.JTabbedPane tabs;
     // End of variables declaration//GEN-END:variables
 }
-
 

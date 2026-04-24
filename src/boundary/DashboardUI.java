@@ -35,13 +35,13 @@ public class DashboardUI extends javax.swing.JFrame {
         table.setSelectionForeground(new java.awt.Color(255, 255, 255));
 
         refreshBtn.addActionListener(e -> refreshPatients());
-        diagnosisBtn.addActionListener(e -> new RecordDiagnosisUI().setVisible(true));
+        diagnosisBtn.addActionListener(e -> new RecordDiagnosisUI(getSelectedPatientId()).setVisible(true));
         claimBtn.addActionListener(e -> new InsuranceClaimBillingUI().setVisible(true));
 
         registerBtn.addActionListener(e -> new RegisterPatientUI().setVisible(true));
         prescribeBtn.addActionListener(e -> new PrescribeTreatmentUI().setVisible(true));
         manageBtn.addActionListener(e -> new ManageMedicalRecordUI().setVisible(true));
-        jButton7.addActionListener(e -> showNotReady("Record Monitoring Data"));
+        jButton7.addActionListener(e -> openRecordMonitoringData());
 
         refreshPatients();
     }
@@ -118,6 +118,23 @@ public class DashboardUI extends javax.swing.JFrame {
 
     private void showNotReady(String featureName) {
         JOptionPane.showMessageDialog(this, featureName + " is not implemented yet.");
+    }
+
+    private String getSelectedPatientId() {
+        int selectedRow = table.getSelectedRow();
+
+        if (selectedRow >= 0) {
+            Object patientIdValue = table.getValueAt(selectedRow, 0);
+            if (patientIdValue != null) {
+                return patientIdValue.toString();
+            }
+        }
+
+        return null;
+    }
+
+    private void openRecordMonitoringData() {
+        new RecordMonitoringDataUI(getSelectedPatientId()).setVisible(true);
     }
 
     /**

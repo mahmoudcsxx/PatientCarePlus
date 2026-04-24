@@ -100,6 +100,7 @@ public class LoginUI extends javax.swing.JFrame {
         emailField.setBackground(new java.awt.Color(255, 255, 255));
         emailField.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         emailField.setForeground(new java.awt.Color(0, 0, 0));
+        emailField.setText("admin@test.com");
         emailField.addActionListener(this::emailFieldActionPerformed);
 
         jLabel2.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
@@ -114,6 +115,7 @@ public class LoginUI extends javax.swing.JFrame {
         jPasswordField1.setBackground(new java.awt.Color(255, 255, 255));
         jPasswordField1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jPasswordField1.setForeground(new java.awt.Color(0, 0, 0));
+        jPasswordField1.setText("1234");
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);

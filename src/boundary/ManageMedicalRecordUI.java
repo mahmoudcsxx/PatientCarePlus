@@ -32,6 +32,8 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
     private void setupManageMedicalRecordUI() {
         setTitle("Manage Medical Record");
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setResizable(false);
+        setLocationRelativeTo(null);
         SaveChangesButton.addActionListener(e -> saveMedicalRecord());
         SelectRecordComboBox.addActionListener(e -> loadSelectedMedicalRecord());
         loadPatientsIntoComboBox();
@@ -123,12 +125,14 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setBackground(new java.awt.Color(245, 247, 250));
+        getContentPane().setPreferredSize(new java.awt.Dimension(870, 640));
         getContentPane().setLayout(null);
 
         NavPanel.setBackground(new java.awt.Color(91, 139, 217));
         NavPanel.setForeground(new java.awt.Color(255, 255, 255));
 
         NavLabel.setFont(new java.awt.Font("Segoe UI", 1, 20)); // NOI18N
+        NavLabel.setForeground(new java.awt.Color(255, 255, 255));
         NavLabel.setText("Manage Medical Record");
 
         javax.swing.GroupLayout NavPanelLayout = new javax.swing.GroupLayout(NavPanel);
@@ -218,7 +222,6 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
         jLabel9.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jLabel9.setForeground(new java.awt.Color(25, 41, 105));
         jLabel9.setText("Diagnosis");
-        addAbsolute(jLabel9, 30, 250, -1, -1);
 
         jScrollPane3.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         jScrollPane3.setHorizontalScrollBar(null);
@@ -660,8 +663,6 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
         jScrollPane10.setViewportView(jTextArea6);
 
         jScrollPane8.setViewportView(jScrollPane10);
-
-        addAbsolute(jScrollPane8, 270, 280, 210, 50);
 
         jScrollPane11.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         jScrollPane11.setHorizontalScrollBar(null);
@@ -1277,4 +1278,5 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
     private javax.swing.JTextArea jTextArea6;
     // End of variables declaration//GEN-END:variables
 }
+
 
