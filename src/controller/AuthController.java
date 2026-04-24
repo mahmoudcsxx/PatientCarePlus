@@ -9,7 +9,7 @@ import java.sql.Statement;
 
 public class AuthController {
 
-    public boolean login(String email, String password) {
+    public boolean login(String email, String password) throws SQLException {
         initializeAuthTable();
 
         String sql = "SELECT ID FROM APP_USERS WHERE LOWER(EMAIL) = LOWER(?) AND PASSWORD = ?";
@@ -23,13 +23,10 @@ public class AuthController {
             try (ResultSet rs = pst.executeQuery()) {
                 return rs.next();
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
         }
     }
 
-    private void initializeAuthTable() {
+    private void initializeAuthTable() throws SQLException {
         try (Connection con = DatabaseManager.getConnection();
              Statement statement = con.createStatement()) {
 
@@ -50,8 +47,6 @@ public class AuthController {
             }
 
             insertDefaultUsers(con);
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
     }
 

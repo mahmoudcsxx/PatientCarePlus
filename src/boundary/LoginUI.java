@@ -5,6 +5,7 @@
 package boundary;
 
 import controller.AuthController;
+import java.sql.SQLException;
 import javax.swing.JOptionPane;
 
 /**
@@ -28,6 +29,7 @@ public class LoginUI extends javax.swing.JFrame {
     // Keep test credentials visible for demos without changing the GUI Builder layout.
     private void setupLoginUI() {
         getRootPane().setDefaultButton(loginBtn);
+        loginBtn.addActionListener(this::loginBtnActionPerformed);
         emailField.setText("admin@test.com");
         jPasswordField1.setText("1234");
         String testAccounts = """
@@ -108,7 +110,6 @@ public class LoginUI extends javax.swing.JFrame {
         loginBtn.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         loginBtn.setForeground(new java.awt.Color(255, 255, 255));
         loginBtn.setText("Login");
-        loginBtn.addActionListener(this::loginBtnActionPerformed);
 
         jPasswordField1.setBackground(new java.awt.Color(255, 255, 255));
         jPasswordField1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
@@ -172,13 +173,27 @@ public class LoginUI extends javax.swing.JFrame {
             return;
         }
 
-        AuthController authController = new AuthController();
-        if (authController.login(email, password)) {
-            JOptionPane.showMessageDialog(this, "Login successful.");
-            new DashboardUI().setVisible(true);
-            this.dispose();
-        } else {
-            JOptionPane.showMessageDialog(this, "Invalid email or password.");
+        try {
+            AuthController authController = new AuthController();
+            if (authController.login(email, password)) {
+                JOptionPane.showMessageDialog(this, "Login successful.");
+                new DashboardUI().setVisible(true);
+                this.dispose();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Invalid email or password.\n\n"
+                        + "Try: admin@test.com / 1234",
+                        "Login Failed",
+                        JOptionPane.WARNING_MESSAGE);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Login could not connect to Derby.\n\n"
+                    + "Make sure Derby server is running on localhost:1527.\n"
+                    + "Details: " + e.getMessage(),
+                    "Database Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 

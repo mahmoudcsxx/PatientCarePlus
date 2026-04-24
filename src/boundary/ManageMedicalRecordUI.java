@@ -123,7 +123,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setBackground(new java.awt.Color(245, 247, 250));
-        getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+        getContentPane().setLayout(null);
 
         NavPanel.setBackground(new java.awt.Color(91, 139, 217));
         NavPanel.setForeground(new java.awt.Color(255, 255, 255));
@@ -148,15 +148,15 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(26, Short.MAX_VALUE))
         );
 
-        getContentPane().add(NavPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 870, 70));
+        addAbsolute(NavPanel, 0, 0, 870, 70);
 
         PatientMonitoringLabel.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         PatientMonitoringLabel.setForeground(new java.awt.Color(91, 139, 217));
         PatientMonitoringLabel.setText("PATIENT MONITORING");
-        getContentPane().add(PatientMonitoringLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(560, 350, -1, 20));
+        addAbsolute(PatientMonitoringLabel, 560, 350, -1, 20);
 
         SelectRecordComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        getContentPane().add(SelectRecordComboBox, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 80, 370, 30));
+        addAbsolute(SelectRecordComboBox, 120, 80, 370, 30);
 
         CommentPanel.setBackground(new java.awt.Color(230, 240, 250));
         CommentPanel.setForeground(new java.awt.Color(255, 255, 255));
@@ -189,36 +189,36 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(14, Short.MAX_VALUE))
         );
 
-        getContentPane().add(CommentPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 140, 460, 40));
+        addAbsolute(CommentPanel, 30, 140, 460, 40);
 
         SelectRecordLabel.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         SelectRecordLabel.setForeground(new java.awt.Color(91, 139, 217));
         SelectRecordLabel.setText("Select record:");
-        getContentPane().add(SelectRecordLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 80, -1, 20));
+        addAbsolute(SelectRecordLabel, 20, 80, -1, 20);
 
         jSeparator1.setBackground(new java.awt.Color(255, 255, 255));
         jSeparator1.setForeground(new java.awt.Color(91, 139, 217));
-        getContentPane().add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(560, 370, 280, 10));
+        addAbsolute(jSeparator1, 560, 370, 280, 10);
 
         TreatmentPlanLabel.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         TreatmentPlanLabel.setForeground(new java.awt.Color(25, 41, 105));
         TreatmentPlanLabel.setText("Treatment plan");
-        getContentPane().add(TreatmentPlanLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 250, -1, -1));
+        addAbsolute(TreatmentPlanLabel, 270, 250, -1, -1);
 
         AllergiesLabel.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         AllergiesLabel.setForeground(new java.awt.Color(25, 41, 105));
         AllergiesLabel.setText("Allergies");
-        getContentPane().add(AllergiesLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 350, -1, -1));
+        addAbsolute(AllergiesLabel, 270, 350, -1, -1);
 
         DiagnosisLabel.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         DiagnosisLabel.setForeground(new java.awt.Color(25, 41, 105));
         DiagnosisLabel.setText("Diagnosis");
-        getContentPane().add(DiagnosisLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 250, -1, -1));
+        addAbsolute(DiagnosisLabel, 30, 250, -1, -1);
 
         jLabel9.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jLabel9.setForeground(new java.awt.Color(25, 41, 105));
         jLabel9.setText("Diagnosis");
-        getContentPane().add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 250, -1, -1));
+        addAbsolute(jLabel9, 30, 250, -1, -1);
 
         jScrollPane3.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         jScrollPane3.setHorizontalScrollBar(null);
@@ -229,7 +229,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
 
         jScrollPane3.setViewportView(jScrollPane4);
 
-        getContentPane().add(jScrollPane3, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 380, 210, 50));
+        addAbsolute(jScrollPane3, 270, 380, 210, 50);
 
         jScrollPane5.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         jScrollPane5.setHorizontalScrollBar(null);
@@ -240,12 +240,12 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
 
         jScrollPane5.setViewportView(jScrollPane6);
 
-        getContentPane().add(jScrollPane5, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 280, 210, 50));
+        addAbsolute(jScrollPane5, 270, 280, 210, 50);
 
         MedicationLabel.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         MedicationLabel.setForeground(new java.awt.Color(25, 41, 105));
         MedicationLabel.setText("Medications");
-        getContentPane().add(MedicationLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 350, -1, -1));
+        addAbsolute(MedicationLabel, 30, 350, -1, -1);
 
         jScrollPane7.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         jScrollPane7.setHorizontalScrollBar(null);
@@ -254,16 +254,16 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
         DoctorNotesTextArea.setRows(5);
         jScrollPane7.setViewportView(DoctorNotesTextArea);
 
-        getContentPane().add(jScrollPane7, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 480, 420, 40));
+        addAbsolute(jScrollPane7, 30, 480, 420, 40);
 
         ClinicalDetailsLabel.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         ClinicalDetailsLabel.setForeground(new java.awt.Color(91, 139, 217));
         ClinicalDetailsLabel.setText("CLINICAL DETAILS");
-        getContentPane().add(ClinicalDetailsLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 200, -1, 20));
+        addAbsolute(ClinicalDetailsLabel, 20, 200, -1, 20);
 
         jSeparator2.setBackground(new java.awt.Color(255, 255, 255));
         jSeparator2.setForeground(new java.awt.Color(91, 139, 217));
-        getContentPane().add(jSeparator2, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 230, 490, 10));
+        addAbsolute(jSeparator2, 20, 230, 490, 10);
 
         HbAlcPanel.setBackground(new java.awt.Color(238, 243, 249));
 
@@ -306,16 +306,16 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(10, Short.MAX_VALUE))
         );
 
-        getContentPane().add(HbAlcPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(570, 140, 100, 80));
+        addAbsolute(HbAlcPanel, 570, 140, 100, 80);
 
         ViewLaboratoryResultsLabel.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         ViewLaboratoryResultsLabel.setForeground(new java.awt.Color(91, 139, 217));
         ViewLaboratoryResultsLabel.setText("VIEW LABORATORY RESULTS");
-        getContentPane().add(ViewLaboratoryResultsLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(560, 90, -1, 20));
+        addAbsolute(ViewLaboratoryResultsLabel, 560, 90, -1, 20);
 
         jSeparator3.setBackground(new java.awt.Color(255, 255, 255));
         jSeparator3.setForeground(new java.awt.Color(91, 139, 217));
-        getContentPane().add(jSeparator3, new org.netbeans.lib.awtextra.AbsoluteConstraints(560, 120, 290, 10));
+        addAbsolute(jSeparator3, 560, 120, 290, 10);
 
         FooterPanel.setBackground(new java.awt.Color(183, 204, 228));
         FooterPanel.setForeground(new java.awt.Color(183, 204, 228));
@@ -350,12 +350,12 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(23, Short.MAX_VALUE))
         );
 
-        getContentPane().add(FooterPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 570, 870, 70));
+        addAbsolute(FooterPanel, 0, 570, 870, 70);
 
         DoctorNotesLabel.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         DoctorNotesLabel.setForeground(new java.awt.Color(25, 41, 105));
         DoctorNotesLabel.setText("Doctor notes");
-        getContentPane().add(DoctorNotesLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 450, -1, -1));
+        addAbsolute(DoctorNotesLabel, 30, 450, -1, -1);
 
         FastingGlucosePanel.setBackground(new java.awt.Color(238, 243, 249));
 
@@ -395,7 +395,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(11, Short.MAX_VALUE))
         );
 
-        getContentPane().add(FastingGlucosePanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(720, 140, 110, 80));
+        addAbsolute(FastingGlucosePanel, 720, 140, 110, 80);
 
         CreatininePanel.setBackground(new java.awt.Color(238, 243, 249));
 
@@ -435,7 +435,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(11, Short.MAX_VALUE))
         );
 
-        getContentPane().add(CreatininePanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(720, 230, 110, 80));
+        addAbsolute(CreatininePanel, 720, 230, 110, 80);
 
         LDLcholesterolPanel.setBackground(new java.awt.Color(238, 243, 249));
 
@@ -475,7 +475,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(11, Short.MAX_VALUE))
         );
 
-        getContentPane().add(LDLcholesterolPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(570, 230, 100, 80));
+        addAbsolute(LDLcholesterolPanel, 570, 230, 100, 80);
 
         HeartratePanel.setBackground(new java.awt.Color(238, 243, 249));
 
@@ -510,7 +510,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(16, Short.MAX_VALUE))
         );
 
-        getContentPane().add(HeartratePanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(660, 400, 90, -1));
+        addAbsolute(HeartratePanel, 660, 400, 90, -1);
 
         BloodPressurPanel.setBackground(new java.awt.Color(238, 243, 249));
 
@@ -545,7 +545,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(16, Short.MAX_VALUE))
         );
 
-        getContentPane().add(BloodPressurPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(560, 400, -1, -1));
+        addAbsolute(BloodPressurPanel, 560, 400, -1, -1);
 
         SpO2Panel.setBackground(new java.awt.Color(238, 243, 249));
         SpO2Panel.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
@@ -579,7 +579,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(16, Short.MAX_VALUE))
         );
 
-        getContentPane().add(SpO2Panel, new org.netbeans.lib.awtextra.AbsoluteConstraints(560, 480, -1, -1));
+        addAbsolute(SpO2Panel, 560, 480, -1, -1);
 
         TemperaturePanel.setBackground(new java.awt.Color(238, 243, 249));
 
@@ -615,7 +615,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(16, Short.MAX_VALUE))
         );
 
-        getContentPane().add(TemperaturePanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(660, 480, 80, -1));
+        addAbsolute(TemperaturePanel, 660, 480, 80, -1);
 
         HbAlcPanel1.setBackground(new java.awt.Color(238, 243, 249));
 
@@ -650,7 +650,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(16, Short.MAX_VALUE))
         );
 
-        getContentPane().add(HbAlcPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(760, 400, 90, -1));
+        addAbsolute(HbAlcPanel1, 760, 400, 90, -1);
 
         jScrollPane8.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         jScrollPane8.setHorizontalScrollBar(null);
@@ -661,7 +661,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
 
         jScrollPane8.setViewportView(jScrollPane10);
 
-        getContentPane().add(jScrollPane8, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 280, 210, 50));
+        addAbsolute(jScrollPane8, 270, 280, 210, 50);
 
         jScrollPane11.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         jScrollPane11.setHorizontalScrollBar(null);
@@ -672,7 +672,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
 
         jScrollPane11.setViewportView(jScrollPane12);
 
-        getContentPane().add(jScrollPane11, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 280, 210, 50));
+        addAbsolute(jScrollPane11, 30, 280, 210, 50);
 
         jScrollPane13.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         jScrollPane13.setHorizontalScrollBar(null);
@@ -683,10 +683,10 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
 
         jScrollPane13.setViewportView(jScrollPane14);
 
-        getContentPane().add(jScrollPane13, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 380, 210, 50));
+        addAbsolute(jScrollPane13, 30, 380, 210, 50);
 
         jSeparator4.setOrientation(javax.swing.SwingConstants.VERTICAL);
-        getContentPane().add(jSeparator4, new org.netbeans.lib.awtextra.AbsoluteConstraints(540, 70, 30, 500));
+        addAbsolute(jSeparator4, 540, 70, 30, 500);
 
         RespiratoryRatePanel.setBackground(new java.awt.Color(238, 243, 249));
 
@@ -721,10 +721,20 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addContainerGap(14, Short.MAX_VALUE))
         );
 
-        getContentPane().add(RespiratoryRatePanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(753, 480, 100, 70));
+        addAbsolute(RespiratoryRatePanel, 753, 480, 100, 70);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    // Place generated components at their designed coordinates without an extra layout package.
+    private void addAbsolute(java.awt.Component component, int x, int y, int width, int height) {
+        java.awt.Dimension preferredSize = component.getPreferredSize();
+        int actualWidth = width >= 0 ? width : preferredSize.width;
+        int actualHeight = height >= 0 ? height : preferredSize.height;
+
+        component.setBounds(x, y, actualWidth, actualHeight);
+        getContentPane().add(component);
+    }
 
     private void CancelButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CancelButtonActionPerformed
         dispose();
@@ -1267,3 +1277,4 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
     private javax.swing.JTextArea jTextArea6;
     // End of variables declaration//GEN-END:variables
 }
+
