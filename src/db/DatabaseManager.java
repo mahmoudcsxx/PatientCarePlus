@@ -7,17 +7,33 @@ import java.sql.Statement;
 
 public class DatabaseManager {
 
-    private static final String DEFAULT_DB_URL = "jdbc:derby://localhost:1527/pcplusdb;create=true"; 
-   
+    private static final String DEFAULT_DB_URL = "jdbc:derby://localhost:1527/pcplusdb;create=true";
+    private static final String DERBY_CLIENT_DRIVER = "org.apache.derby.client.ClientAutoloadedDriver";
+    private static final ClassNotFoundException DRIVER_LOAD_ERROR;
+
+    static {
+        ClassNotFoundException loadError = null;
+        try {
+            Class.forName(DERBY_CLIENT_DRIVER);
+        } catch (ClassNotFoundException e) {
+            loadError = e;
+        }
+        DRIVER_LOAD_ERROR = loadError;
+    }
 
     private DatabaseManager() {
     }
 
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(
-                DEFAULT_DB_URL
-                
-        );
+        if (DRIVER_LOAD_ERROR != null) {
+            SQLException sqlException = new SQLException(
+                    "Derby ClientDriver not found. Make sure libs/derbyclient.jar and libs/derbyshared.jar are in the project libraries.",
+                    DRIVER_LOAD_ERROR
+            );
+            throw sqlException;
+        }
+
+        return DriverManager.getConnection(getDatabaseUrl());
     }
 
     public static boolean testConnection() {

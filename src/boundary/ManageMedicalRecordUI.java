@@ -4,6 +4,14 @@
  */
 package boundary;
 
+import db.DatabaseManager;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author ZINAB
@@ -17,6 +25,16 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
      */
     public ManageMedicalRecordUI() {
         initComponents();
+        setupManageMedicalRecordUI();
+    }
+
+    // Wire UI events and load the available patients when the screen opens.
+    private void setupManageMedicalRecordUI() {
+        setTitle("Manage Medical Record");
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        SaveChangesButton.addActionListener(e -> saveMedicalRecord());
+        SelectRecordComboBox.addActionListener(e -> loadSelectedMedicalRecord());
+        loadPatientsIntoComboBox();
     }
 
     /**
@@ -120,7 +138,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
             .addGroup(NavPanelLayout.createSequentialGroup()
                 .addGap(18, 18, 18)
                 .addComponent(NavLabel)
-                .addContainerGap(625, Short.MAX_VALUE))
+                .addContainerGap(623, Short.MAX_VALUE))
         );
         NavPanelLayout.setVerticalGroup(
             NavPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -159,7 +177,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                 .addComponent(jLabel5)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(CommentLabel)
-                .addContainerGap(97, Short.MAX_VALUE))
+                .addContainerGap(99, Short.MAX_VALUE))
         );
         CommentPanelLayout.setVerticalGroup(
             CommentPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -274,7 +292,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                     .addGroup(HbAlcPanelLayout.createSequentialGroup()
                         .addGap(32, 32, 32)
                         .addComponent(HbAlcLabel)))
-                .addContainerGap(33, Short.MAX_VALUE))
+                .addContainerGap(35, Short.MAX_VALUE))
         );
         HbAlcPanelLayout.setVerticalGroup(
             HbAlcPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -363,7 +381,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                     .addComponent(FastingGlucoseNumberLabel)
                     .addComponent(FastingGlucoseTypeLabel)
                     .addComponent(FastingGlucoseLabel))
-                .addContainerGap(17, Short.MAX_VALUE))
+                .addContainerGap(20, Short.MAX_VALUE))
         );
         FastingGlucosePanelLayout.setVerticalGroup(
             FastingGlucosePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -403,7 +421,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                     .addComponent(CreatinineTypeLabel)
                     .addComponent(CreatinineLabel)
                     .addComponent(CreatinineNumberLabel))
-                .addContainerGap(40, Short.MAX_VALUE))
+                .addContainerGap(39, Short.MAX_VALUE))
         );
         CreatininePanelLayout.setVerticalGroup(
             CreatininePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -443,7 +461,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                     .addComponent(LDLcholesterolNumberLabel)
                     .addComponent(LDLcholesterolTypeLabel)
                     .addComponent(LDLcholesterolLabel))
-                .addContainerGap(7, Short.MAX_VALUE))
+                .addContainerGap(8, Short.MAX_VALUE))
         );
         LDLcholesterolPanelLayout.setVerticalGroup(
             LDLcholesterolPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -480,7 +498,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                         .addGap(6, 6, 6)
                         .addComponent(HeartrateNumberLabel))
                     .addComponent(HeartrateLabel))
-                .addContainerGap(18, Short.MAX_VALUE))
+                .addContainerGap(17, Short.MAX_VALUE))
         );
         HeartratePanelLayout.setVerticalGroup(
             HeartratePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -585,7 +603,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
                     .addGroup(TemperaturePanelLayout.createSequentialGroup()
                         .addContainerGap()
                         .addComponent(TemperatureLabel)))
-                .addContainerGap(13, Short.MAX_VALUE))
+                .addContainerGap(15, Short.MAX_VALUE))
         );
         TemperaturePanelLayout.setVerticalGroup(
             TemperaturePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -709,8 +727,238 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void CancelButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CancelButtonActionPerformed
-        // TODO add your handling code here:
+        dispose();
     }//GEN-LAST:event_CancelButtonActionPerformed
+
+    // Fill the combo box from Derby so the user can choose a patient record.
+    private void loadPatientsIntoComboBox() {
+        SelectRecordComboBox.removeAllItems();
+
+        try {
+            initializeMedicalRecordTables();
+
+            try (Connection con = DatabaseManager.getConnection()) {
+                boolean addedAny = addPatientsFromTable(con);
+
+                if (!addedAny) {
+                    addPatientsFromInsurance(con);
+                }
+            }
+
+            if (SelectRecordComboBox.getItemCount() > 0) {
+                SelectRecordComboBox.setSelectedIndex(0);
+                loadSelectedMedicalRecord();
+            } else {
+                clearMedicalRecordForm();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Could not load patients from Derby.");
+        }
+    }
+
+    // Prefer the main PATIENT table so we can show both ID and name.
+    private boolean addPatientsFromTable(Connection con) throws SQLException {
+        String sql = "SELECT PATIENT_ID, FULL_NAME FROM PATIENT ORDER BY PATIENT_ID";
+        boolean addedAny = false;
+
+        try (PreparedStatement pst = con.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
+
+            while (rs.next()) {
+                String patientId = rs.getString("PATIENT_ID");
+                String fullName = rs.getString("FULL_NAME");
+                SelectRecordComboBox.addItem(fullName == null || fullName.isBlank()
+                        ? patientId
+                        : patientId + " - " + fullName);
+                addedAny = true;
+            }
+        }
+
+        return addedAny;
+    }
+
+    // Fallback to insurance records if PATIENT rows have not been created yet.
+    private void addPatientsFromInsurance(Connection con) throws SQLException {
+        String sql = "SELECT PATIENT_ID FROM PATIENT_INSURANCE ORDER BY PATIENT_ID";
+
+        try (PreparedStatement pst = con.prepareStatement(sql);
+             ResultSet rs = pst.executeQuery()) {
+
+            while (rs.next()) {
+                SelectRecordComboBox.addItem(rs.getString("PATIENT_ID"));
+            }
+        } catch (SQLException e) {
+            if (!"42X05".equals(e.getSQLState())) {
+                throw e;
+            }
+        }
+    }
+
+    // Create the backing tables once so this screen can read and save records safely.
+    private void initializeMedicalRecordTables() throws SQLException {
+        try (Connection con = DatabaseManager.getConnection();
+             Statement statement = con.createStatement()) {
+
+            try {
+                statement.executeUpdate(
+                        "CREATE TABLE PATIENT ("
+                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
+                        + "FULL_NAME VARCHAR(150) NOT NULL, "
+                        + "DATE_OF_BIRTH VARCHAR(30) NOT NULL, "
+                        + "GENDER VARCHAR(20), "
+                        + "PHONE_NUMBER VARCHAR(30), "
+                        + "EMAIL VARCHAR(120), "
+                        + "ADDRESS VARCHAR(255), "
+                        + "BLOOD_TYPE VARCHAR(10), "
+                        + "CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                        + ")"
+                );
+            } catch (SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) {
+                    throw e;
+                }
+            }
+
+            try {
+                statement.executeUpdate(
+                        "CREATE TABLE MEDICAL_RECORD ("
+                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
+                        + "DIAGNOSIS VARCHAR(2000), "
+                        + "MEDICATION VARCHAR(2000), "
+                        + "TREATMENT_PLAN VARCHAR(2000), "
+                        + "ALLERGIES VARCHAR(2000), "
+                        + "DOCTOR_NOTES VARCHAR(2000), "
+                        + "UPDATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                        + ")"
+                );
+            } catch (SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    // Load the selected patient's saved clinical notes into the editable fields.
+    private void loadSelectedMedicalRecord() {
+        Object selectedItem = SelectRecordComboBox.getSelectedItem();
+        if (selectedItem == null) {
+            clearMedicalRecordForm();
+            return;
+        }
+
+        String patientId = extractPatientId(selectedItem.toString());
+        String sql = """
+                SELECT DIAGNOSIS, MEDICATION, TREATMENT_PLAN, ALLERGIES, DOCTOR_NOTES
+                FROM MEDICAL_RECORD
+                WHERE PATIENT_ID = ?
+                """;
+
+        try {
+            initializeMedicalRecordTables();
+
+            try (Connection con = DatabaseManager.getConnection();
+                 PreparedStatement pst = con.prepareStatement(sql)) {
+
+                pst.setString(1, patientId);
+
+                try (ResultSet rs = pst.executeQuery()) {
+                    if (rs.next()) {
+                        DiagnosisTextArea.setText(defaultText(rs.getString("DIAGNOSIS")));
+                        MedicationTextArea.setText(defaultText(rs.getString("MEDICATION")));
+                        TreatmentPlanTextArea.setText(defaultText(rs.getString("TREATMENT_PLAN")));
+                        AllergiesTextArea.setText(defaultText(rs.getString("ALLERGIES")));
+                        DoctorNotesTextArea.setText(defaultText(rs.getString("DOCTOR_NOTES")));
+                    } else {
+                        clearMedicalRecordForm();
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Could not load the selected medical record.");
+        }
+    }
+
+    // Save the current form values for the selected patient, updating first when possible.
+    private void saveMedicalRecord() {
+        Object selectedItem = SelectRecordComboBox.getSelectedItem();
+        if (selectedItem == null) {
+            JOptionPane.showMessageDialog(this, "Please register a patient first.");
+            return;
+        }
+
+        String patientId = extractPatientId(selectedItem.toString());
+        String diagnosis = DiagnosisTextArea.getText().trim();
+        String medication = MedicationTextArea.getText().trim();
+        String treatmentPlan = TreatmentPlanTextArea.getText().trim();
+        String allergies = AllergiesTextArea.getText().trim();
+        String doctorNotes = DoctorNotesTextArea.getText().trim();
+
+        String updateSql = """
+                UPDATE MEDICAL_RECORD
+                SET DIAGNOSIS = ?, MEDICATION = ?, TREATMENT_PLAN = ?,
+                    ALLERGIES = ?, DOCTOR_NOTES = ?, UPDATED_AT = CURRENT_TIMESTAMP
+                WHERE PATIENT_ID = ?
+                """;
+        String insertSql = """
+                INSERT INTO MEDICAL_RECORD
+                (PATIENT_ID, DIAGNOSIS, MEDICATION, TREATMENT_PLAN, ALLERGIES, DOCTOR_NOTES)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """;
+
+        try {
+            initializeMedicalRecordTables();
+
+            try (Connection con = DatabaseManager.getConnection();
+                 PreparedStatement updatePst = con.prepareStatement(updateSql)) {
+
+                updatePst.setString(1, diagnosis);
+                updatePst.setString(2, medication);
+                updatePst.setString(3, treatmentPlan);
+                updatePst.setString(4, allergies);
+                updatePst.setString(5, doctorNotes);
+                updatePst.setString(6, patientId);
+
+                int updated = updatePst.executeUpdate();
+                if (updated == 0) {
+                    try (PreparedStatement insertPst = con.prepareStatement(insertSql)) {
+                        insertPst.setString(1, patientId);
+                        insertPst.setString(2, diagnosis);
+                        insertPst.setString(3, medication);
+                        insertPst.setString(4, treatmentPlan);
+                        insertPst.setString(5, allergies);
+                        insertPst.setString(6, doctorNotes);
+                        insertPst.executeUpdate();
+                    }
+                }
+            }
+
+            JOptionPane.showMessageDialog(this, "Medical record saved for " + patientId + ".");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Could not save the medical record.");
+        }
+    }
+
+    // Combo values are shown as "P001 - Name", but the database key is only the ID part.
+    private String extractPatientId(String comboValue) {
+        int separatorIndex = comboValue.indexOf(" - ");
+        return separatorIndex >= 0 ? comboValue.substring(0, separatorIndex) : comboValue;
+    }
+
+    private String defaultText(String value) {
+        return value == null ? "" : value;
+    }
+
+    private void clearMedicalRecordForm() {
+        DiagnosisTextArea.setText("");
+        MedicationTextArea.setText("");
+        TreatmentPlanTextArea.setText("");
+        AllergiesTextArea.setText("");
+        DoctorNotesTextArea.setText("");
+    }
 
     /**
      * @param args the command line arguments

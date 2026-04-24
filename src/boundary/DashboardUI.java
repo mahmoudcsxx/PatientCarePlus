@@ -38,9 +38,9 @@ public class DashboardUI extends javax.swing.JFrame {
         diagnosisBtn.addActionListener(e -> new RecordDiagnosisUI().setVisible(true));
         claimBtn.addActionListener(e -> new InsuranceClaimBillingUI().setVisible(true));
 
-        registerBtn.addActionListener(e -> showNotReady("Register Patient"));
+        registerBtn.addActionListener(e -> new RegisterPatientUI().setVisible(true));
         prescribeBtn.addActionListener(e -> new PrescribeTreatmentUI().setVisible(true));
-        manageBtn.addActionListener(e -> showNotReady("Manage Medical Record"));
+        manageBtn.addActionListener(e -> new ManageMedicalRecordUI().setVisible(true));
         jButton7.addActionListener(e -> showNotReady("Record Monitoring Data"));
 
         refreshPatients();
