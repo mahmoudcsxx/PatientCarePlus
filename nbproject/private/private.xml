@@ -9,7 +9,6 @@
             <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/InsuranceClaimBillingUI.java</file>
             <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/RegisterPatientUI.java</file>
             <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/RecordDiagnosisUI.java</file>
-            <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/DashboardUI.java</file>
             <file>file:/X:/Repos/University/PatientCarePlus/src/controller/AuthController.java</file>
             <file>file:/X:/Repos/University/PatientCarePlus/src/controller/PatientCareController.java</file>
             <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/RecordMonitoringDataUI.java</file>
@@ -21,6 +20,7 @@
             <file>file:/X:/Repos/University/PatientCarePlus/src/enums/BillingStatus.java</file>
             <file>file:/X:/Repos/University/PatientCarePlus/src/enums/ClaimStatus.java</file>
             <file>file:/X:/Repos/University/PatientCarePlus/src/enums/Role.java</file>
+            <file>file:/X:/Repos/University/PatientCarePlus/src/boundary/DashboardUI.java</file>
         </group>
     </open-files>
 </project-private>
