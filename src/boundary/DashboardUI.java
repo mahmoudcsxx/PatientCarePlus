@@ -32,6 +32,7 @@ public class DashboardUI extends javax.swing.JFrame {
         table.setSelectionForeground(new java.awt.Color(255, 255, 255));
 
         refreshBtn.addActionListener(e -> refreshPatients());
+        deletePatientBtn.addActionListener(e -> deleteSelectedPatient());
         diagnosisBtn.addActionListener(e -> new RecordDiagnosisUI(getSelectedPatientId()).setVisible(true));
         claimBtn.addActionListener(e -> new InsuranceClaimBillingUI().setVisible(true));
 
@@ -105,22 +106,6 @@ public class DashboardUI extends javax.swing.JFrame {
                 }
             }
 
-            insertDefaultPatientInsurance(con, "P001");
-            insertDefaultPatientInsurance(con, "P002");
-            insertDefaultPatientInsurance(con, "P003");
-        }
-    }
-
-    private void insertDefaultPatientInsurance(Connection con, String patientId) {
-        String sql = "INSERT INTO PATIENT_INSURANCE (PATIENT_ID, POLICY_NUMBER, PROVIDER) VALUES (?, '', '')";
-
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setString(1, patientId);
-            pst.executeUpdate();
-        } catch (SQLException e) {
-            if (!"23505".equals(e.getSQLState())) {
-                e.printStackTrace();
-            }
         }
     }
 
@@ -149,6 +134,40 @@ public class DashboardUI extends javax.swing.JFrame {
         new RecordMonitoringDataUI(getSelectedPatientId()).setVisible(true);
     }
 
+    private void deleteSelectedPatient() {
+        String patientId = getSelectedPatientId();
+        if (patientId == null || patientId.isBlank()) {
+            JOptionPane.showMessageDialog(this, "Please select a patient to delete.");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Delete patient " + patientId + " and all related records?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+            boolean deleted = controller.deletePatient(patientId);
+            if (deleted) {
+                JOptionPane.showMessageDialog(this, "Patient deleted successfully.");
+                refreshPatients();
+            } else {
+                JOptionPane.showMessageDialog(this, "Patient was not found.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Could not delete patient from Derby.\n" + e.getMessage(),
+                    "Database Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -159,6 +178,7 @@ public class DashboardUI extends javax.swing.JFrame {
         titleLabel = new javax.swing.JLabel();
         logoutBtn = new javax.swing.JButton();
         refreshBtn = new javax.swing.JButton();
+        deletePatientBtn = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         table = new javax.swing.JTable();
         jPanel3 = new javax.swing.JPanel();
@@ -194,6 +214,11 @@ public class DashboardUI extends javax.swing.JFrame {
         refreshBtn.setForeground(new java.awt.Color(0, 0, 0));
         refreshBtn.setText("Refresh");
 
+        deletePatientBtn.setBackground(new java.awt.Color(255, 255, 255));
+        deletePatientBtn.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        deletePatientBtn.setForeground(new java.awt.Color(204, 0, 0));
+        deletePatientBtn.setText("Delete Patient");
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -202,6 +227,8 @@ public class DashboardUI extends javax.swing.JFrame {
                 .addGap(28, 28, 28)
                 .addComponent(titleLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(deletePatientBtn)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(refreshBtn)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(logoutBtn)
@@ -214,7 +241,8 @@ public class DashboardUI extends javax.swing.JFrame {
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                         .addComponent(logoutBtn)
-                        .addComponent(refreshBtn))
+                        .addComponent(refreshBtn)
+                        .addComponent(deletePatientBtn))
                     .addComponent(titleLabel))
                 .addContainerGap(26, Short.MAX_VALUE))
         );
@@ -393,6 +421,7 @@ public class DashboardUI extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel actionsLabel;
     private javax.swing.JButton claimBtn;
+    private javax.swing.JButton deletePatientBtn;
     private javax.swing.JButton diagnosisBtn;
     private javax.swing.JButton jButton7;
     private javax.swing.JPanel jPanel1;

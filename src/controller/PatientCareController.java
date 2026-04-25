@@ -120,6 +120,34 @@ public class PatientCareController {
         }
     }
 
+    public boolean deletePatient(String patientId) throws SQLException {
+        initializeCoreTables();
+
+        try (Connection con = DatabaseManager.getConnection()) {
+            con.setAutoCommit(false);
+
+            try {
+                boolean deleted = false;
+                deleted |= deleteFromTable(con, "INSURANCE_CLAIM", "PATIENT_ID", patientId);
+                deleted |= deleteFromTable(con, "BILLING_INVOICE", "PATIENT_ID", patientId);
+                deleted |= deleteFromTable(con, "TREATMENT_PRESCRIPTION", "PATIENT_ID", patientId);
+                deleted |= deleteFromTable(con, "PATIENT_MONITORING", "PATIENT_ID", patientId);
+                deleted |= deleteFromTable(con, "LAB_RESULT", "PATIENT_ID", patientId);
+                deleted |= deleteFromTable(con, "DIAGNOSIS", "PATIENT_ID", patientId);
+                deleted |= deleteFromTable(con, "MEDICAL_RECORD", "PATIENT_ID", patientId);
+                deleted |= deleteFromTable(con, "PATIENT_INSURANCE", "PATIENT_ID", patientId);
+                deleted |= deleteFromTable(con, "PATIENT", "PATIENT_ID", patientId);
+                con.commit();
+                return deleted;
+            } catch (SQLException e) {
+                con.rollback();
+                throw e;
+            } finally {
+                con.setAutoCommit(true);
+            }
+        }
+    }
+
     public List<String> getPatientIds() throws SQLException {
         initializeCoreTables();
 
@@ -495,6 +523,21 @@ public class PatientCareController {
             if (!"X0Y32".equals(sqlState) && !"42X14".equals(sqlState)) {
                 throw e;
             }
+        }
+    }
+
+    private boolean deleteFromTable(Connection con, String tableName, String columnName, String value)
+            throws SQLException {
+        String sql = "DELETE FROM " + tableName + " WHERE " + columnName + " = ?";
+
+        try (PreparedStatement pst = con.prepareStatement(sql)) {
+            pst.setString(1, value);
+            return pst.executeUpdate() > 0;
+        } catch (SQLException e) {
+            if ("42X05".equals(e.getSQLState())) {
+                return false;
+            }
+            throw e;
         }
     }
 
