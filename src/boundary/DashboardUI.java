@@ -4,6 +4,7 @@
  */
 package boundary;
 
+import controller.PatientCareController;
 import db.DatabaseManager;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,6 +18,7 @@ import javax.swing.table.DefaultTableModel;
 public class DashboardUI extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(DashboardUI.class.getName());
+    private final PatientCareController controller = new PatientCareController();
 
   
     public DashboardUI() {
@@ -46,6 +48,7 @@ public class DashboardUI extends javax.swing.JFrame {
         model.setRowCount(0);
 
         try {
+            controller.initializeCoreTables();
             initializePatientInsuranceTable();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -53,7 +56,17 @@ public class DashboardUI extends javax.swing.JFrame {
             return;
         }
 
-        String sql = "SELECT PATIENT_ID, POLICY_NUMBER, PROVIDER FROM PATIENT_INSURANCE ORDER BY PATIENT_ID";
+        String sql = """
+                SELECT ids.PATIENT_ID, p.FULL_NAME, p.PHONE_NUMBER, i.PROVIDER, i.POLICY_NUMBER
+                FROM (
+                    SELECT PATIENT_ID FROM PATIENT
+                    UNION
+                    SELECT PATIENT_ID FROM PATIENT_INSURANCE
+                ) ids
+                LEFT JOIN PATIENT p ON ids.PATIENT_ID = p.PATIENT_ID
+                LEFT JOIN PATIENT_INSURANCE i ON ids.PATIENT_ID = i.PATIENT_ID
+                ORDER BY ids.PATIENT_ID
+                """;
 
         try (Connection con = DatabaseManager.getConnection();
              PreparedStatement pst = con.prepareStatement(sql);
@@ -62,8 +75,8 @@ public class DashboardUI extends javax.swing.JFrame {
             while (rs.next()) {
                 model.addRow(new Object[]{
                     rs.getString("PATIENT_ID"),
-                    "",
-                    "",
+                    defaultText(rs.getString("FULL_NAME")),
+                    defaultText(rs.getString("PHONE_NUMBER")),
                     rs.getString("PROVIDER"),
                     rs.getString("POLICY_NUMBER")
                 });
@@ -109,6 +122,10 @@ public class DashboardUI extends javax.swing.JFrame {
                 e.printStackTrace();
             }
         }
+    }
+
+    private String defaultText(String value) {
+        return value == null ? "" : value;
     }
 
     private void showNotReady(String featureName) {
