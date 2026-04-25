@@ -15,13 +15,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-/**
- * Central controller for patient-care database operations.
- *
- * The GUI screens can call this class instead of placing SQL directly inside
- * every JFrame. Some screens still have local SQL while we migrate gradually,
- * but this class is now the main reusable service layer.
- */
+
 public class PatientCareController {
 
     private static final SimpleDateFormat DB_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
