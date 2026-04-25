@@ -1,16 +1,12 @@
 package boundary;
 
-import db.DatabaseManager;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import controller.PatientCareController;
 import javax.swing.JOptionPane;
 
 public class RecordDiagnosisUI extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(RecordDiagnosisUI.class.getName());
+    private final PatientCareController controller = new PatientCareController();
 
     public RecordDiagnosisUI() {
         this(null);
@@ -168,27 +164,10 @@ public class RecordDiagnosisUI extends javax.swing.JFrame {
         patientCombo.removeAllItems();
 
         try {
-            DiagnosisDAO.initializeDiagnosisTable();
-            String sql = """
-                    SELECT PATIENT_ID FROM PATIENT
-                    UNION
-                    SELECT PATIENT_ID FROM PATIENT_INSURANCE
-                    ORDER BY PATIENT_ID
-                    """;
-
-            try (Connection con = DatabaseManager.getConnection();
-                 PreparedStatement pst = con.prepareStatement(sql);
-                 ResultSet rs = pst.executeQuery()) {
-
-                while (rs.next()) {
-                    patientCombo.addItem(rs.getString("PATIENT_ID"));
-                }
-            } catch (SQLException e) {
-                if (!"42X05".equals(e.getSQLState())) {
-                    throw e;
-                }
+            for (String patientId : controller.getPatientIds()) {
+                patientCombo.addItem(patientId);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Could not load patients from Derby.");
         }
@@ -222,11 +201,11 @@ public class RecordDiagnosisUI extends javax.swing.JFrame {
         }
 
         try {
-            DiagnosisDAO.saveDiagnosis(selectedPatient.toString(), diagnosis, symptoms, treatment);
+            controller.saveDiagnosis(selectedPatient.toString(), diagnosis, symptoms, treatment);
             JOptionPane.showMessageDialog(this, "Diagnosis saved successfully.");
             clearDiagnosisFields();
             loadMedicalHistory();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this,
                     "Could not save diagnosis to Derby.\n" + e.getMessage(),
@@ -243,9 +222,9 @@ public class RecordDiagnosisUI extends javax.swing.JFrame {
         }
 
         try {
-            historyArea.setText(DiagnosisDAO.getDiagnosisHistory(selectedPatient.toString()));
+            historyArea.setText(controller.getDiagnosisHistory(selectedPatient.toString()));
             historyArea.setCaretPosition(0);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             historyArea.setText("Could not load medical history from Derby.");
         }
@@ -256,113 +235,6 @@ public class RecordDiagnosisUI extends javax.swing.JFrame {
         symptomsArea.setText("");
         treatmentArea.setText("");
         diagnosisField.requestFocus();
-    }
-
-    private static class DiagnosisDAO {
-
-        private static void initializeDiagnosisTable() throws SQLException {
-            try (Connection con = DatabaseManager.getConnection();
-                 Statement statement = con.createStatement()) {
-
-                try {
-                    statement.executeUpdate(
-                            "CREATE TABLE DIAGNOSIS ("
-                            + "ID INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, "
-                            + "PATIENT_ID VARCHAR(50), "
-                            + "DIAGNOSIS_TEXT VARCHAR(255) NOT NULL, "
-                            + "SYMPTOMS VARCHAR(1000), "
-                            + "TREATMENT VARCHAR(1000), "
-                            + "CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-                            + ")"
-                    );
-                } catch (SQLException e) {
-                    if (!"X0Y32".equals(e.getSQLState())) {
-                        throw e;
-                    }
-                }
-
-                ensureColumn(statement, "PATIENT_ID VARCHAR(50)");
-                ensureColumn(statement, "CREATED_AT TIMESTAMP");
-            }
-        }
-
-        private static void ensureColumn(Statement statement, String columnDefinition) throws SQLException {
-            try {
-                statement.executeUpdate("ALTER TABLE DIAGNOSIS ADD COLUMN " + columnDefinition);
-            } catch (SQLException e) {
-                String sqlState = e.getSQLState();
-                if (!"X0Y32".equals(sqlState) && !"42X14".equals(sqlState)) {
-                    throw e;
-                }
-            }
-        }
-
-        private static void saveDiagnosis(String patientId, String diagnosis, String symptoms, String treatment) throws SQLException {
-            initializeDiagnosisTable();
-
-            String sql = """
-                    INSERT INTO DIAGNOSIS (PATIENT_ID, DIAGNOSIS_TEXT, SYMPTOMS, TREATMENT, CREATED_AT)
-                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    """;
-
-            try (Connection con = DatabaseManager.getConnection();
-                 PreparedStatement pst = con.prepareStatement(sql)) {
-
-                pst.setString(1, patientId);
-                pst.setString(2, diagnosis);
-                setNullableString(pst, 3, symptoms);
-                setNullableString(pst, 4, treatment);
-                pst.executeUpdate();
-            }
-        }
-
-        private static String getDiagnosisHistory(String patientId) throws SQLException {
-            initializeDiagnosisTable();
-
-            String sql = """
-                    SELECT DIAGNOSIS_TEXT, SYMPTOMS, TREATMENT, CREATED_AT
-                    FROM DIAGNOSIS
-                    WHERE PATIENT_ID = ?
-                    ORDER BY ID DESC
-                    """;
-            StringBuilder history = new StringBuilder();
-
-            try (Connection con = DatabaseManager.getConnection();
-                 PreparedStatement pst = con.prepareStatement(sql)) {
-
-                pst.setString(1, patientId);
-
-                try (ResultSet rs = pst.executeQuery()) {
-                    while (rs.next()) {
-                        java.sql.Timestamp createdAt = rs.getTimestamp("CREATED_AT");
-
-                        history.append("Diagnosis: ")
-                                .append(rs.getString("DIAGNOSIS_TEXT"))
-                                .append("\nSymptoms: ")
-                                .append(defaultText(rs.getString("SYMPTOMS")))
-                                .append("\nTreatment: ")
-                                .append(defaultText(rs.getString("TREATMENT")))
-                                .append("\nDate: ")
-                                .append(createdAt == null ? "Unknown" : createdAt)
-                                .append("\n-----------------------------\n");
-                    }
-                }
-            }
-
-            return history.length() == 0 ? "No diagnosis history for this patient yet." : history.toString();
-        }
-
-        private static void setNullableString(PreparedStatement pst, int index, String value) throws SQLException {
-            if (value == null || value.trim().isEmpty()) {
-                pst.setString(index, null);
-            } else {
-                pst.setString(index, value.trim());
-            }
-        }
-
-        private static String defaultText(String value) {
-            return value == null ? "" : value;
-        }
     }
 
     public static void main(String args[]) {
@@ -401,3 +273,5 @@ public class RecordDiagnosisUI extends javax.swing.JFrame {
     private javax.swing.JScrollPane treatmentScrollPane;
     // End of variables declaration//GEN-END:variables
 }
+
+

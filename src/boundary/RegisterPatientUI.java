@@ -4,12 +4,10 @@
  */
 package boundary;
 
-import db.DatabaseManager;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import controller.PatientCareController;
+import entity.Patient;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import javax.swing.JOptionPane;
 
 /**
@@ -19,6 +17,7 @@ import javax.swing.JOptionPane;
 public class RegisterPatientUI extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(RegisterPatientUI.class.getName());
+    private final PatientCareController controller = new PatientCareController();
 
     /**
      * Creates new form RegisterPatientUI
@@ -308,7 +307,7 @@ public class RegisterPatientUI extends javax.swing.JFrame {
     // =========================================================
     private void registerPatient() {
         String fullName = txtfullname.getText().trim();
-        String dateOfBirth = jFormattedTextField1.getText().trim();
+        String dateOfBirthText = jFormattedTextField1.getText().trim();
         String phoneNumber = txtphonenumber.getText().trim();
         String email = txtemailaddress.getText().trim();
         String address = txtaddress.getText().trim();
@@ -323,176 +322,44 @@ public class RegisterPatientUI extends javax.swing.JFrame {
             return;
         }
 
-        if (dateOfBirth.isEmpty()) {
+        if (dateOfBirthText.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter the patient's date of birth.");
             jFormattedTextField1.requestFocus();
             return;
         }
 
         try {
-            // Make sure the required Derby tables exist before we insert anything.
-            initializePatientTables();
-            String patientId = savePatient(fullName, dateOfBirth, gender, phoneNumber, email, address, bloodType,
-                    policyNumber, insuranceProvider);
+            Patient patient = controller.registerPatient(
+                    fullName,
+                    parseDateOfBirth(dateOfBirthText),
+                    phoneNumber,
+                    address,
+                    email,
+                    gender,
+                    bloodType
+            );
+            controller.updatePatientInsuranceInfo(patient.getPatientId(), policyNumber, insuranceProvider);
 
-            // Show the generated patient ID so the receptionist can use it immediately.
-            JOptionPane.showMessageDialog(this, "Patient registered successfully.\nPatient ID: " + patientId);
+            JOptionPane.showMessageDialog(this,
+                    "Patient registered successfully.\nPatient ID: " + patient.getPatientId());
             clearForm();
-        } catch (SQLException e) {
+        } catch (ParseException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Invalid date. Please use a format like 20-12-2000 or 20/12/2000.",
+                    "Invalid Date",
+                    JOptionPane.WARNING_MESSAGE);
+            jFormattedTextField1.requestFocus();
+        } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Could not save the patient to Derby.");
         }
     }
 
-    // =========================================================
-    //   DATABASE SETUP - Create patient tables if they do not exist
-    // =========================================================
-    private void initializePatientTables() throws SQLException {
-        try (Connection con = DatabaseManager.getConnection();
-             Statement statement = con.createStatement()) {
-
-            try {
-                statement.executeUpdate(
-                        "CREATE TABLE PATIENT ("
-                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
-                        + "FULL_NAME VARCHAR(150) NOT NULL, "
-                        + "DATE_OF_BIRTH VARCHAR(30) NOT NULL, "
-                        + "GENDER VARCHAR(20), "
-                        + "PHONE_NUMBER VARCHAR(30), "
-                        + "EMAIL VARCHAR(120), "
-                        + "ADDRESS VARCHAR(255), "
-                        + "BLOOD_TYPE VARCHAR(10), "
-                        + "CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-                        + ")"
-                );
-            } catch (SQLException e) {
-                if (!"X0Y32".equals(e.getSQLState())) {
-                    throw e;
-                }
-            }
-
-            try {
-                statement.executeUpdate(
-                        "CREATE TABLE PATIENT_INSURANCE ("
-                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
-                        + "POLICY_NUMBER VARCHAR(100), "
-                        + "PROVIDER VARCHAR(100)"
-                        + ")"
-                );
-            } catch (SQLException e) {
-                if (!"X0Y32".equals(e.getSQLState())) {
-                    throw e;
-                }
-            }
-        }
-    }
-
-    // =========================================================
-    //   SAVE - Insert patient + insurance data in one transaction
-    // =========================================================
-    private String savePatient(String fullName, String dateOfBirth, String gender, String phoneNumber, String email,
-                               String address, String bloodType, String policyNumber,
-                               String insuranceProvider) throws SQLException {
-        String patientSql = """
-                INSERT INTO PATIENT
-                (PATIENT_ID, FULL_NAME, DATE_OF_BIRTH, GENDER, PHONE_NUMBER, EMAIL, ADDRESS, BLOOD_TYPE)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """;
-        try (Connection con = DatabaseManager.getConnection()) {
-            con.setAutoCommit(false);
-
-            try {
-                // Check both tables so an old partial insurance row cannot reuse the same ID.
-                String patientId = generateNextPatientId(con);
-
-                try (PreparedStatement patientPst = con.prepareStatement(patientSql)) {
-
-                    patientPst.setString(1, patientId);
-                    patientPst.setString(2, fullName);
-                    patientPst.setString(3, dateOfBirth);
-                    setNullableString(patientPst, 4, gender);
-                    setNullableString(patientPst, 5, phoneNumber);
-                    setNullableString(patientPst, 6, email);
-                    setNullableString(patientPst, 7, address);
-                    setNullableString(patientPst, 8, bloodType);
-                    patientPst.executeUpdate();
-                }
-
-                saveInsurance(con, patientId, policyNumber, insuranceProvider);
-                con.commit();
-                return patientId;
-            } catch (SQLException e) {
-                // Roll back both inserts together if either one fails.
-                con.rollback();
-                throw e;
-            }
-        }
-    }
-
-    // =========================================================
-    //   HELPER - Build the next patient ID from existing rows
-    // =========================================================
-    private String generateNextPatientId(Connection con) throws SQLException {
-        int nextNumber = 1;
-        String sql = """
-                SELECT PATIENT_ID FROM PATIENT
-                UNION
-                SELECT PATIENT_ID FROM PATIENT_INSURANCE
-                """;
-
-        try (PreparedStatement pst = con.prepareStatement(sql);
-             ResultSet rs = pst.executeQuery()) {
-
-            while (rs.next()) {
-                String patientId = rs.getString("PATIENT_ID");
-                if (patientId != null && patientId.matches("P\\d+")) {
-                    int number = Integer.parseInt(patientId.substring(1));
-                    nextNumber = Math.max(nextNumber, number + 1);
-                }
-            }
-        }
-
-        return String.format("P%03d", nextNumber);
-    }
-
-    // Insert insurance for a new patient, or update it if a matching row already exists.
-    private void saveInsurance(Connection con, String patientId, String policyNumber,
-                               String insuranceProvider) throws SQLException {
-        String updateSql = """
-                UPDATE PATIENT_INSURANCE
-                SET POLICY_NUMBER = ?, PROVIDER = ?
-                WHERE PATIENT_ID = ?
-                """;
-        String insertSql = """
-                INSERT INTO PATIENT_INSURANCE (PATIENT_ID, POLICY_NUMBER, PROVIDER)
-                VALUES (?, ?, ?)
-                """;
-
-        try (PreparedStatement updatePst = con.prepareStatement(updateSql)) {
-            setNullableString(updatePst, 1, policyNumber);
-            setNullableString(updatePst, 2, insuranceProvider);
-            updatePst.setString(3, patientId);
-
-            if (updatePst.executeUpdate() > 0) {
-                return;
-            }
-        }
-
-        try (PreparedStatement insertPst = con.prepareStatement(insertSql)) {
-            insertPst.setString(1, patientId);
-            setNullableString(insertPst, 2, policyNumber);
-            setNullableString(insertPst, 3, insuranceProvider);
-            insertPst.executeUpdate();
-        }
-    }
-
-    // Store blank optional fields as SQL nulls instead of noisy empty strings.
-    private void setNullableString(PreparedStatement pst, int index, String value) throws SQLException {
-        if (value == null || value.trim().isEmpty()) {
-            pst.setString(index, null);
-        } else {
-            pst.setString(index, value.trim());
-        }
+    private java.util.Date parseDateOfBirth(String value) throws ParseException {
+        String normalized = value.replace('/', '-');
+        SimpleDateFormat format = new SimpleDateFormat("dd-MM-yyyy");
+        format.setLenient(false);
+        return format.parse(normalized);
     }
 
     // =========================================================
@@ -567,3 +434,5 @@ public class RegisterPatientUI extends javax.swing.JFrame {
     private javax.swing.JTextField txtpolicynumber;
     // End of variables declaration//GEN-END:variables
 }
+
+

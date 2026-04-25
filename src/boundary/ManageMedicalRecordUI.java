@@ -4,7 +4,9 @@
  */
 package boundary;
 
+import controller.PatientCareController;
 import db.DatabaseManager;
+import entity.Patient;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,6 +21,7 @@ import javax.swing.JOptionPane;
 public class ManageMedicalRecordUI extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(ManageMedicalRecordUI.class.getName());
+    private final PatientCareController controller = new PatientCareController();
 
     /**
      * Creates new form ManageMedicalRecordUI
@@ -741,18 +744,24 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
         dispose();
     }//GEN-LAST:event_CancelButtonActionPerformed
 
-    // Fill the combo box from Derby so the user can choose a patient record.
+    // Load patient IDs into the record selector.
     private void loadPatientsIntoComboBox() {
         SelectRecordComboBox.removeAllItems();
 
         try {
-            initializeMedicalRecordTables();
+            boolean addedPatients = false;
+            for (Patient patient : controller.getPatients()) {
+                String patientId = patient.getPatientId();
+                String fullName = patient.getFullName();
+                SelectRecordComboBox.addItem(fullName == null || fullName.isBlank()
+                        ? patientId
+                        : patientId + " - " + fullName);
+                addedPatients = true;
+            }
 
-            try (Connection con = DatabaseManager.getConnection()) {
-                boolean addedAny = addPatientsFromTable(con);
-
-                if (!addedAny) {
-                    addPatientsFromInsurance(con);
+            if (!addedPatients) {
+                for (String patientId : controller.getPatientIds()) {
+                    SelectRecordComboBox.addItem(patientId);
                 }
             }
 
@@ -762,132 +771,15 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
             } else {
                 clearMedicalRecordForm();
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Could not load patients from Derby.");
         }
     }
 
-    // Prefer the main PATIENT table so we can show both ID and name.
-    private boolean addPatientsFromTable(Connection con) throws SQLException {
-        String sql = "SELECT PATIENT_ID, FULL_NAME FROM PATIENT ORDER BY PATIENT_ID";
-        boolean addedAny = false;
-
-        try (PreparedStatement pst = con.prepareStatement(sql);
-             ResultSet rs = pst.executeQuery()) {
-
-            while (rs.next()) {
-                String patientId = rs.getString("PATIENT_ID");
-                String fullName = rs.getString("FULL_NAME");
-                SelectRecordComboBox.addItem(fullName == null || fullName.isBlank()
-                        ? patientId
-                        : patientId + " - " + fullName);
-                addedAny = true;
-            }
-        }
-
-        return addedAny;
-    }
-
-    // Fallback to insurance records if PATIENT rows have not been created yet.
-    private void addPatientsFromInsurance(Connection con) throws SQLException {
-        String sql = "SELECT PATIENT_ID FROM PATIENT_INSURANCE ORDER BY PATIENT_ID";
-
-        try (PreparedStatement pst = con.prepareStatement(sql);
-             ResultSet rs = pst.executeQuery()) {
-
-            while (rs.next()) {
-                SelectRecordComboBox.addItem(rs.getString("PATIENT_ID"));
-            }
-        } catch (SQLException e) {
-            if (!"42X05".equals(e.getSQLState())) {
-                throw e;
-            }
-        }
-    }
-
-    // Create the backing tables once so this screen can read and save records safely.
     private void initializeMedicalRecordTables() throws SQLException {
-        try (Connection con = DatabaseManager.getConnection();
-             Statement statement = con.createStatement()) {
-
-            try {
-                statement.executeUpdate(
-                        "CREATE TABLE PATIENT ("
-                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
-                        + "FULL_NAME VARCHAR(150) NOT NULL, "
-                        + "DATE_OF_BIRTH VARCHAR(30) NOT NULL, "
-                        + "GENDER VARCHAR(20), "
-                        + "PHONE_NUMBER VARCHAR(30), "
-                        + "EMAIL VARCHAR(120), "
-                        + "ADDRESS VARCHAR(255), "
-                        + "BLOOD_TYPE VARCHAR(10), "
-                        + "CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-                        + ")"
-                );
-            } catch (SQLException e) {
-                if (!"X0Y32".equals(e.getSQLState())) {
-                    throw e;
-                }
-            }
-
-            try {
-                statement.executeUpdate(
-                        "CREATE TABLE MEDICAL_RECORD ("
-                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
-                        + "DIAGNOSIS VARCHAR(2000), "
-                        + "MEDICATION VARCHAR(2000), "
-                        + "TREATMENT_PLAN VARCHAR(2000), "
-                        + "ALLERGIES VARCHAR(2000), "
-                        + "DOCTOR_NOTES VARCHAR(2000), "
-                        + "UPDATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-                        + ")"
-                );
-            } catch (SQLException e) {
-                if (!"X0Y32".equals(e.getSQLState())) {
-                    throw e;
-                }
-            }
-
-            try {
-                statement.executeUpdate(
-                        "CREATE TABLE LAB_RESULT ("
-                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
-                        + "HBALC DOUBLE, "
-                        + "FASTING_GLUCOSE DOUBLE, "
-                        + "LDL_CHOLESTEROL DOUBLE, "
-                        + "CREATININE DOUBLE, "
-                        + "RESULT_STATUS VARCHAR(30), "
-                        + "UPDATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-                        + ")"
-                );
-            } catch (SQLException e) {
-                if (!"X0Y32".equals(e.getSQLState())) {
-                    throw e;
-                }
-            }
-
-            try {
-                statement.executeUpdate(
-                        "CREATE TABLE PATIENT_MONITORING ("
-                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
-                        + "BLOOD_PRESSURE VARCHAR(30), "
-                        + "HEART_RATE INT, "
-                        + "WEIGHT DOUBLE, "
-                        + "SPO2 INT, "
-                        + "TEMPERATURE DOUBLE, "
-                        + "RESPIRATORY_RATE INT, "
-                        + "RECORDED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-                        + ")"
-                );
-            } catch (SQLException e) {
-                if (!"X0Y32".equals(e.getSQLState())) {
-                    throw e;
-                }
-            }
-        }
+        controller.initializeCoreTables();
     }
-
     // Load the selected patient's saved clinical notes into the editable fields.
     private void loadSelectedMedicalRecord() {
         Object selectedItem = SelectRecordComboBox.getSelectedItem();
@@ -1100,53 +992,15 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
         String allergies = AllergiesTextArea.getText().trim();
         String doctorNotes = DoctorNotesTextArea.getText().trim();
 
-        String updateSql = """
-                UPDATE MEDICAL_RECORD
-                SET DIAGNOSIS = ?, MEDICATION = ?, TREATMENT_PLAN = ?,
-                    ALLERGIES = ?, DOCTOR_NOTES = ?, UPDATED_AT = CURRENT_TIMESTAMP
-                WHERE PATIENT_ID = ?
-                """;
-        String insertSql = """
-                INSERT INTO MEDICAL_RECORD
-                (PATIENT_ID, DIAGNOSIS, MEDICATION, TREATMENT_PLAN, ALLERGIES, DOCTOR_NOTES)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """;
-
         try {
-            initializeMedicalRecordTables();
-
-            try (Connection con = DatabaseManager.getConnection();
-                 PreparedStatement updatePst = con.prepareStatement(updateSql)) {
-
-                updatePst.setString(1, diagnosis);
-                updatePst.setString(2, medication);
-                updatePst.setString(3, treatmentPlan);
-                updatePst.setString(4, allergies);
-                updatePst.setString(5, doctorNotes);
-                updatePst.setString(6, patientId);
-
-                int updated = updatePst.executeUpdate();
-                if (updated == 0) {
-                    try (PreparedStatement insertPst = con.prepareStatement(insertSql)) {
-                        insertPst.setString(1, patientId);
-                        insertPst.setString(2, diagnosis);
-                        insertPst.setString(3, medication);
-                        insertPst.setString(4, treatmentPlan);
-                        insertPst.setString(5, allergies);
-                        insertPst.setString(6, doctorNotes);
-                        insertPst.executeUpdate();
-                    }
-                }
-            }
-
-            JOptionPane.showMessageDialog(this, "Medical record saved for " + patientId + ".");
-        } catch (SQLException e) {
+            controller.updateMedicalRecord(patientId, diagnosis, treatmentPlan, medication, allergies, doctorNotes);
+            JOptionPane.showMessageDialog(this, "Medical record saved successfully.");
+            loadSelectedMedicalRecord();
+        } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Could not save the medical record.");
+            JOptionPane.showMessageDialog(this, "Could not save the medical record to Derby.");
         }
     }
-
-    // Combo values are shown as "P001 - Name", but the database key is only the ID part.
     private String extractPatientId(String comboValue) {
         int separatorIndex = comboValue.indexOf(" - ");
         return separatorIndex >= 0 ? comboValue.substring(0, separatorIndex) : comboValue;
@@ -1278,5 +1132,7 @@ public class ManageMedicalRecordUI extends javax.swing.JFrame {
     private javax.swing.JTextArea jTextArea6;
     // End of variables declaration//GEN-END:variables
 }
+
+
 
 

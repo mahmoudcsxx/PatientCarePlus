@@ -1,16 +1,12 @@
 package boundary;
 
-import db.DatabaseManager;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import controller.PatientCareController;
 import javax.swing.JOptionPane;
 
 public class RecordMonitoringDataUI extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(RecordMonitoringDataUI.class.getName());
+    private final PatientCareController controller = new PatientCareController();
 
     public RecordMonitoringDataUI() {
         this(null);
@@ -53,11 +49,9 @@ public class RecordMonitoringDataUI extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Record Monitoring Data");
-        setResizable(false);
         setMinimumSize(new java.awt.Dimension(636, 520));
         setPreferredSize(new java.awt.Dimension(636, 520));
-        getContentPane().setBackground(new java.awt.Color(245, 247, 250));
-        getContentPane().setPreferredSize(new java.awt.Dimension(620, 480));
+        setResizable(false);
         getContentPane().setLayout(null);
 
         headerPanel.setBackground(new java.awt.Color(102, 153, 255));
@@ -134,7 +128,6 @@ public class RecordMonitoringDataUI extends javax.swing.JFrame {
         saveButton.setBounds(420, 430, 170, 32);
 
         pack();
-        setSize(new java.awt.Dimension(636, 520));
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
@@ -150,27 +143,10 @@ public class RecordMonitoringDataUI extends javax.swing.JFrame {
         patientCombo.removeAllItems();
 
         try {
-            initializeMonitoringTable();
-            String sql = """
-                    SELECT PATIENT_ID FROM PATIENT
-                    UNION
-                    SELECT PATIENT_ID FROM PATIENT_INSURANCE
-                    ORDER BY PATIENT_ID
-                    """;
-
-            try (Connection con = DatabaseManager.getConnection();
-                 PreparedStatement pst = con.prepareStatement(sql);
-                 ResultSet rs = pst.executeQuery()) {
-
-                while (rs.next()) {
-                    patientCombo.addItem(rs.getString("PATIENT_ID"));
-                }
-            } catch (SQLException e) {
-                if (!"42X05".equals(e.getSQLState())) {
-                    throw e;
-                }
+            for (String patientId : controller.getPatientIds()) {
+                patientCombo.addItem(patientId);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Could not load patients from Derby.");
         }
@@ -186,44 +162,6 @@ public class RecordMonitoringDataUI extends javax.swing.JFrame {
         }
 
         clearFields();
-    }
-
-    private void loadSelectedPatientMonitoring() {
-        Object selectedItem = patientCombo.getSelectedItem();
-        if (selectedItem == null) {
-            return;
-        }
-
-        String sql = """
-                SELECT BLOOD_PRESSURE, HEART_RATE, WEIGHT, SPO2, TEMPERATURE, RESPIRATORY_RATE
-                FROM PATIENT_MONITORING
-                WHERE PATIENT_ID = ?
-                """;
-
-        try {
-            initializeMonitoringTable();
-
-            try (Connection con = DatabaseManager.getConnection();
-                 PreparedStatement pst = con.prepareStatement(sql)) {
-
-                pst.setString(1, selectedItem.toString());
-
-                try (ResultSet rs = pst.executeQuery()) {
-                    if (rs.next()) {
-                        bloodPressureField.setText(defaultText(rs.getString("BLOOD_PRESSURE")));
-                        heartRateField.setText(formatNullableInt(rs, "HEART_RATE"));
-                        weightField.setText(formatNullableDouble(rs, "WEIGHT"));
-                        spo2Field.setText(formatNullableInt(rs, "SPO2"));
-                        temperatureField.setText(formatNullableDouble(rs, "TEMPERATURE"));
-                        respiratoryRateField.setText(formatNullableInt(rs, "RESPIRATORY_RATE"));
-                    } else {
-                        clearFields();
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
     private void saveMonitoringData() {
@@ -248,83 +186,16 @@ public class RecordMonitoringDataUI extends javax.swing.JFrame {
                 return;
             }
 
-            saveMonitoringRecord(patientId, bloodPressure, heartRate, weight, spo2, temperature, respiratoryRate);
+            controller.saveMonitoringData(patientId, bloodPressure, heartRate, weight, spo2, temperature, respiratoryRate);
             JOptionPane.showMessageDialog(this, "Monitoring data saved successfully.");
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Invalid Number", JOptionPane.WARNING_MESSAGE);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this,
                     "Could not save monitoring data to Derby.\n" + e.getMessage(),
                     "Database Error",
                     JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void saveMonitoringRecord(String patientId, String bloodPressure, int heartRate, double weight,
-                                      int spo2, double temperature, int respiratoryRate) throws SQLException {
-        initializeMonitoringTable();
-
-        String updateSql = """
-                UPDATE PATIENT_MONITORING
-                SET BLOOD_PRESSURE = ?, HEART_RATE = ?, WEIGHT = ?, SPO2 = ?,
-                    TEMPERATURE = ?, RESPIRATORY_RATE = ?, RECORDED_AT = CURRENT_TIMESTAMP
-                WHERE PATIENT_ID = ?
-                """;
-        String insertSql = """
-                INSERT INTO PATIENT_MONITORING
-                (PATIENT_ID, BLOOD_PRESSURE, HEART_RATE, WEIGHT, SPO2, TEMPERATURE, RESPIRATORY_RATE)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """;
-
-        try (Connection con = DatabaseManager.getConnection();
-             PreparedStatement updatePst = con.prepareStatement(updateSql)) {
-
-            updatePst.setString(1, bloodPressure);
-            updatePst.setInt(2, heartRate);
-            updatePst.setDouble(3, weight);
-            updatePst.setInt(4, spo2);
-            updatePst.setDouble(5, temperature);
-            updatePst.setInt(6, respiratoryRate);
-            updatePst.setString(7, patientId);
-
-            if (updatePst.executeUpdate() == 0) {
-                try (PreparedStatement insertPst = con.prepareStatement(insertSql)) {
-                    insertPst.setString(1, patientId);
-                    insertPst.setString(2, bloodPressure);
-                    insertPst.setInt(3, heartRate);
-                    insertPst.setDouble(4, weight);
-                    insertPst.setInt(5, spo2);
-                    insertPst.setDouble(6, temperature);
-                    insertPst.setInt(7, respiratoryRate);
-                    insertPst.executeUpdate();
-                }
-            }
-        }
-    }
-
-    private void initializeMonitoringTable() throws SQLException {
-        try (Connection con = DatabaseManager.getConnection();
-             Statement statement = con.createStatement()) {
-
-            try {
-                statement.executeUpdate(
-                        "CREATE TABLE PATIENT_MONITORING ("
-                        + "PATIENT_ID VARCHAR(50) PRIMARY KEY, "
-                        + "BLOOD_PRESSURE VARCHAR(30), "
-                        + "HEART_RATE INT, "
-                        + "WEIGHT DOUBLE, "
-                        + "SPO2 INT, "
-                        + "TEMPERATURE DOUBLE, "
-                        + "RESPIRATORY_RATE INT, "
-                        + "RECORDED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-                        + ")"
-                );
-            } catch (SQLException e) {
-                if (!"X0Y32".equals(e.getSQLState())) {
-                    throw e;
-                }
-            }
         }
     }
 
@@ -353,25 +224,6 @@ public class RecordMonitoringDataUI extends javax.swing.JFrame {
         spo2Field.setText("");
         temperatureField.setText("");
         respiratoryRateField.setText("");
-    }
-
-    private String defaultText(String value) {
-        return value == null ? "" : value;
-    }
-
-    private String formatNullableInt(ResultSet rs, String column) throws SQLException {
-        int value = rs.getInt(column);
-        return rs.wasNull() ? "" : String.valueOf(value);
-    }
-
-    private String formatNullableDouble(ResultSet rs, String column) throws SQLException {
-        double value = rs.getDouble(column);
-        if (rs.wasNull()) {
-            return "";
-        }
-        return value == Math.rint(value)
-                ? String.valueOf((int) value)
-                : String.format(java.util.Locale.US, "%.1f", value);
     }
 
     public static void main(String args[]) {
@@ -409,3 +261,5 @@ public class RecordMonitoringDataUI extends javax.swing.JFrame {
     private javax.swing.JLabel weightLabel;
     // End of variables declaration//GEN-END:variables
 }
+
+
